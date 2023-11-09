@@ -11,7 +11,7 @@ import random
 
 # Helper functions for browser setup and random sleep times
 def sleep_time():
-    time.sleep(random.randint(1, 4))
+    time.sleep(random.randint(2, 4))
 
 def configure_selenium():
     options = webdriver.ChromeOptions()
@@ -27,7 +27,7 @@ def configure_selenium():
 def scrape_company_info(driver, company_name, adresse):
     time.sleep(1)
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
-    sleep_time()
+    time.sleep(1)
 
     try:
         # Accept the cookies if the button is present
@@ -40,26 +40,16 @@ def scrape_company_info(driver, company_name, adresse):
     sleep_time()
 
     # Click on Maps link if it exists
-    try:
-        driver.find_element(By.LINK_TEXT, "Maps").click()
-        sleep_time()
-    except NoSuchElementException:
-        pass
-
-    # Regex for the address, phone number, and website
-    address_regex = r"^[A-Za-z0-9\s,.'-]{3,}$"
-    phone_regex = r"^(?:\+33\s?|0)[1-9](?:[\s.-]?[0-9]{2}){4}$"
-    website_regex = r"^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$"
-
-    # Get the address, phone number, and website if available
-    adresse = get_element_text(driver, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[7]/div[3]/button/div/div[2]/div[1]', address_regex) 
-    phone = get_element_text(driver, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[9]/div[6]/button/div/div[2]/div[1]', phone_regex)
-    website = get_element_text(driver, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[9]/div[5]/a/div/div[2]/div[1]', website_regex)
+    #try:
+    #    driver.find_element(By.LINK_TEXT, "Maps").click()
+    #    sleep_time()
+    #except NoSuchElementException:
+    #    pass
 
     # Get reviews, if present
     reviews = []
     try:
-        button_plus = driver.find_elements(By.CLASS_NAME, "rqjGif")
+        button_plus = driver.find_elements(By.XPATH, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[3]/div/div/button[2]/div[2]/div[2]')
         if button_plus:
             button_plus[0].click()
         sleep_time()
@@ -101,26 +91,112 @@ def extract_reviews(driver):
 
     return reviews
 
-def get_element_text(driver, xpath, regex_pattern=None):
+def extract_phone_number(driver):
+    # Extract the phone number
+    phone = ""
     try:
-        element_text = driver.find_element(By.XPATH, xpath).text
-        if element_text:  # Vérifiez si le texte n'est pas None ou vide
-            return element_text.strip()
-        else:
-            return "Information not found"
+        phone = driver.find_element(By.CLASS_NAME.startswith("Appeler le")).text
     except NoSuchElementException:
-        if regex_pattern:
-            return get_element_text_by_regex(driver, regex_pattern)
-        return "Information not found"
+        phone = "No phone number found"
 
+    return phone
 
-def get_element_text_by_regex(driver, pattern):
-    page_source = driver.page_source
-    matches = re.findall(pattern, page_source)
-    if matches:
-        return matches[0].strip()  # Retournez la première correspondance nettoyée
-    else:
-        return "Information not found"
+def extract_address(driver):
+    # Extract the address
+    address = ""
+    try:
+        address = driver.find_element(By.LINK_TEXT, "Adresse")
+        address = address.find_element(By.XPATH, "./following-sibling::span").text
+    except NoSuchElementException:
+        address = "No address found"
+
+    return address
+
+def extract_website(driver):
+    # Extract the website
+    website = ""
+    try:
+        website = driver.find_element(By.LINK_TEXT, "Site web")
+        website = website.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        website = "No website found"
+
+    return website
+
+def extract_schedule(driver):
+    # Extract the schedule
+    schedule = ""
+    try:
+        schedule = driver.find_element(By.CSS_SELECTOR, "tr").text
+    except NoSuchElementException:
+        schedule = "No schedule found"
+
+    return schedule
+
+def extract_instagram(driver):
+    # Extract the instagram through the url starting by https://www.instagram.com/
+    instagram = ""
+    try:
+        instagram = driver.find_element(By.LINK_TEXT, "Instagram")
+        instagram = instagram.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        instagram = "No instagram found"
+
+    return instagram
+
+def extract_facebook(driver):
+    # Extract the facebook through the url starting by https://www.facebook.com/
+    facebook = ""
+    try:
+        facebook = driver.find_element(By.LINK_TEXT, "Facebook")
+        facebook = facebook.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        facebook = "No facebook found"
+
+    return facebook 
+
+def extract_twitter(driver):
+    # Extract the twitter through the url starting by https://twitter.com/
+    twitter = ""
+    try:
+        twitter = driver.find_element(By.LINK_TEXT, "Twitter")
+        twitter = twitter.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        twitter = "No twitter found"
+
+    return twitter
+
+def extract_linkedin(driver):
+    # Extract the linkedin through the url starting by https://www.linkedin.com/
+    linkedin = ""
+    try:
+        linkedin = driver.find_element(By.LINK_TEXT, "LinkedIn")
+        linkedin = linkedin.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        linkedin = "No linkedin found"
+
+    return linkedin
+
+def extract_youtube(driver):
+    # Extract the youtube through the url starting by https://www.youtube.com/
+    youtube = ""
+    try:
+        youtube = driver.find_element(By.LINK_TEXT, "YouTube")
+        youtube = youtube.find_element(By.CLASS_NAME, "ab_button").text
+    except NoSuchElementException:
+        youtube = "No youtube found"
+
+    return youtube
+
+def extract_email(driver):
+    # Extract the email through the url starting by mailto:
+    email = ""
+    try:
+        email = driver.find_element(By.LINK_TEXT, "Email")
+    except NoSuchElementException:
+        email = "No email found"
+
+    return email
 
 
 # Read the CSV, search for each company, and update the information
