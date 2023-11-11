@@ -144,10 +144,14 @@ def extract_website(driver):
 
 def extract_schedule(driver):
     # Extract the schedule from the table
+    time.sleep(3)
     schedule = {}
     try:
-        # Find all the <tr> elements in the table
+        extend_schedule_list = driver.find_element(By.XPATH, "//a[contains(text(), 'Horaires')]/following::div/div")
+        extend_schedule_list.click()
+        
         rows = driver.find_elements(By.XPATH, "//table/tbody/tr")
+        
         for row in rows:
             # The first <td> contains the day of the week
             day_td = row.find_element(By.XPATH, "./td[1]")
@@ -157,13 +161,12 @@ def extract_schedule(driver):
             hours_td = row.find_element(By.XPATH, "./td[2]")
             hours_text = hours_td.text.strip()
 
-            # Some <td> may contain additional <div> elements for special notes
-            # These will be included in the .text property of the hours <td>
             schedule[day] = hours_text
     except NoSuchElementException:
         schedule = "No schedule found"
 
     return schedule
+
 
 def extract_instagram(driver):
     # Extract the Instagram URL
