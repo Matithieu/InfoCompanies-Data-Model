@@ -4,8 +4,12 @@ import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
+
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 import time
 import random
 
@@ -20,12 +24,13 @@ def configure_selenium():
     options.add_argument("--disable-extensions")
     options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--window-size=1600, 1080")
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
 def scrape_company_info(driver, company_name, adresse):
-    time.sleep(1)
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
     time.sleep(1)
 
@@ -39,36 +44,6 @@ def scrape_company_info(driver, company_name, adresse):
 
     sleep_time()
 
-    # Click on Maps link if it exists
-    #try:
-    #    driver.find_element(By.LINK_TEXT, "Maps").click()
-    #    sleep_time()
-    #except NoSuchElementException:
-    #    pass
-
-    # Get reviews, if present
-
-    '''
-
-    reviews = []
-    try:
-        button_plus = driver.find_elements(By.XPATH, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[3]/div/div/button[2]/div[2]/div[2]')
-        if button_plus:
-            button_plus[0].click()
-        sleep_time()
-
-        # Expand all the reviews if the button is present
-        review_expand_buttons = driver.find_elements(By.CLASS_NAME, "w8nwRe")
-        for button in review_expand_buttons:
-            button.click()
-        sleep_time()
-
-        reviews = extract_reviews(driver)
-    except NoSuchElementException:
-        reviews = "No reviews found"
-
-        '''
-
     company_info = {
         "company_name": company_name,
         "phone": extract_phone_number(driver),
@@ -81,6 +56,7 @@ def scrape_company_info(driver, company_name, adresse):
         "linkedin": extract_linkedin(driver),
         "youtube": extract_youtube(driver),
         "email": extract_email(driver),
+        "reviews": extract_reviews(driver),
     }
 
     driver.quit()
@@ -88,22 +64,6 @@ def scrape_company_info(driver, company_name, adresse):
     print(company_info)
 
     return company_info
-
-def extract_reviews(driver):
-    # Extract the reviews details
-    authors_elements = driver.find_elements(By.CLASS_NAME, "d4r55")
-    text_elements = driver.find_elements(By.CLASS_NAME, "wiI7pd")
-    stars_elements = driver.find_elements(By.CLASS_NAME, "kvMYJc")
-
-    reviews = []
-    for i in range(len(authors_elements)):
-        author = authors_elements[i].text if i < len(authors_elements) else "No author"
-        text = text_elements[i].text if i < len(text_elements) else "No comment"
-        stars_label = stars_elements[i].get_attribute("aria-label") if i < len(stars_elements) else "No rating"
-        stars = stars_label.split()[0] if stars_label else "No rating"
-        reviews.append({"author": author, "text": text, "stars": stars})
-
-    return reviews
 
 def extract_phone_number(driver):
     # Extract the phone number
@@ -115,7 +75,6 @@ def extract_phone_number(driver):
         phone = "No phone number found"
 
     return phone
-
 
 def extract_address(driver):
     # Extract the address without relying on class names
@@ -167,7 +126,6 @@ def extract_schedule(driver):
 
     return schedule
 
-
 def extract_instagram(driver):
     # Extract the Instagram URL
     instagram = ""
@@ -188,7 +146,6 @@ def extract_facebook(driver):
     except NoSuchElementException:
         facebook = "No Facebook URL found"
     return facebook
-
 
 def extract_twitter(driver):
     # Extract the Twitter URL
@@ -220,7 +177,6 @@ def extract_youtube(driver):
         youtube = "No YouTube URL found"
     return youtube
 
-
 def extract_email(driver):
     # Extract the email through the url starting by mailto:
     email = ""
@@ -231,4 +187,37 @@ def extract_email(driver):
 
     return email
 
+
+def extract_reviews(driver):
+    try:
+        reviews = []
+        list_review_button = driver.find_element(By.XPATH, "//span[contains(text(), 'avis Google')]")
+        list_review_button.click()
+        
+        time.sleep(3)
+        
+        rows = driver.find_elements(By.CLASS_NAME, "gws-localreviews__google-review")
+        
+        for row in rows:            
+            author = row.find_element(By.XPATH, ".//img[contains(@src, 'https://lh3.googleusercontent.com/')]")
+            author = author.get_attribute('alt')
+            stars = row.find_element(By.XPATH, ".//*[contains(@aria-label, 'Note')]")
+            # Extract the rating from the aria-label attribute
+            stars = stars.get_attribute('aria-label')
+            note = stars.split()[2]  # Cela suppose que la chaîne est de la forme "Note : 4,5 sur 5"
+            
+            try:
+                extend_review_button = row.find_element(By.XPATH, ".//a[contains(text(), 'Plus')]")
+                extend_review_button.click()
+            except:
+                pass
+
+            review_text = row.find_element(By.XPATH, ".//span[@class='review-snippet']").text
+            
+            reviews.append({"author": author, "text": review_text, "stars": note})
+    except NoSuchElementException:
+        reviews = "No reviews found"
+        
+    return reviews
+        
 scrape_company_info(configure_selenium(), "Mistral boite de nuit", "aix")
