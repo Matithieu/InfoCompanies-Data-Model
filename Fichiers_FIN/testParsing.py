@@ -57,6 +57,7 @@ def scrape_company_info(driver, company_name, adresse):
         "youtube": extract_youtube(driver),
         "email": extract_email(driver),
         "reviews": extract_reviews(driver),
+        "dateOfScraping": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
     driver.quit()
@@ -187,37 +188,49 @@ def extract_email(driver):
 
     return email
 
+from selenium.common.exceptions import NoSuchElementException
+import time
 
 def extract_reviews(driver):
     try:
         reviews = []
         list_review_button = driver.find_element(By.XPATH, "//span[contains(text(), 'avis Google')]")
         list_review_button.click()
-        
-        time.sleep(3)
-        
-        rows = driver.find_elements(By.CLASS_NAME, "gws-localreviews__google-review")
-        
-        for row in rows:            
-            author = row.find_element(By.XPATH, ".//img[contains(@src, 'https://lh3.googleusercontent.com/')]")
-            author = author.get_attribute('alt')
-            stars = row.find_element(By.XPATH, ".//*[contains(@aria-label, 'Note')]")
-            # Extract the rating from the aria-label attribute
-            stars = stars.get_attribute('aria-label')
-            note = stars.split()[2]  # Cela suppose que la chaîne est de la forme "Note : 4,5 sur 5"
-            
-            try:
-                extend_review_button = row.find_element(By.XPATH, ".//a[contains(text(), 'Plus')]")
-                extend_review_button.click()
-            except:
-                pass
 
-            review_text = row.find_element(By.XPATH, ".//span[@class='review-snippet']").text
+        time.sleep(3)
+
+        rows = driver.find_elements(By.CLASS_NAME, "gws-localreviews__google-review")
+
+        for row in rows:
+            try:
+                author = row.find_element(By.XPATH, ".//img[contains(@src, 'https://lh3.googleusercontent.com/')]")
+                author = author.get_attribute('alt')
+                stars = row.find_element(By.XPATH, ".//*[contains(@aria-label, 'Note')]")
+                stars = stars.get_attribute('aria-label')
+                note = stars.split()[2]  # Assuming the format "Note: 4.5 out of 5"
+
+                review_text = ""
+                try:
+                    extend_review_button = row.find_element(By.XPATH, ".//a[contains(text(), 'Plus')]")
+                    extend_review_button.click()
+                    time.sleep(1)  # Wait for the review to expand
+                    review_text = row.find_element(By.XPATH, ".//span[@class='review-full-text']").text
+                except NoSuchElementException:
+                    # Handle the case where the 'Plus' button is not present
+                    review_snippet = row.find_element(By.XPATH, ".//span[@class='review-snippet']")
+                    review_text = review_snippet.text if review_snippet else "Review text not available"
+
+                reviews.append({"author": author, "text": review_text, "stars": note})
+            except NoSuchElementException:
+                print("Problem finding review elements")
+                continue
             
-            reviews.append({"author": author, "text": review_text, "stars": note})
     except NoSuchElementException:
+        print("Problem finding reviews")
         reviews = "No reviews found"
-        
+
     return reviews
+
+
         
 scrape_company_info(configure_selenium(), "Mistral boite de nuit", "aix")
