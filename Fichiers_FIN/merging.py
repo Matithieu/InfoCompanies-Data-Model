@@ -16,7 +16,7 @@ colonnes_a_conserver = [
 ]
 
 # Lecture des fichiers CSV
-df1 = pd.read_csv('./fichier_combine (copie).csv', delimiter=';')
+df1 = pd.read_csv('./fichier_combine.csv', delimiter=';')
 df2 = pd.read_csv('./fichier_combine_updated.csv', delimiter=';', usecols=colonnes_a_conserver)
 
 # Fusion des dataframes

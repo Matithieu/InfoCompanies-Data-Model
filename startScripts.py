@@ -8,6 +8,7 @@ scripts = [
     "Entreprises-Radiées/newRadiatedCompanies.py",
     "Entreprises-Radiées/sortRadiated.py",
     "Fichiers_FIN/finalSort.py",
+    "Fichiers_FIN/merging.py",
     #"Fichiers_FIN/main",
 ]
 
