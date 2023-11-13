@@ -4,14 +4,18 @@ import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
+
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 import time
 import random
 
 # Helper functions for browser setup and random sleep times
 def sleep_time():
-    time.sleep(random.randint(2, 4))
+    time.sleep(random.randint(2, 2))
 
 def configure_selenium():
     options = webdriver.ChromeOptions()
@@ -20,12 +24,13 @@ def configure_selenium():
     options.add_argument("--disable-extensions")
     options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--window-size=1600, 1080")
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
 def scrape_company_info(driver, company_name, adresse):
-    time.sleep(1)
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
     time.sleep(1)
 
@@ -39,153 +44,132 @@ def scrape_company_info(driver, company_name, adresse):
 
     sleep_time()
 
-    # Click on Maps link if it exists
-    #try:
-    #    driver.find_element(By.LINK_TEXT, "Maps").click()
-    #    sleep_time()
-    #except NoSuchElementException:
-    #    pass
-
-    # Get reviews, if present
-    reviews = []
-    try:
-        button_plus = driver.find_elements(By.XPATH, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[3]/div/div/button[2]/div[2]/div[2]')
-        if button_plus:
-            button_plus[0].click()
-        sleep_time()
-
-        # Expand all the reviews if the button is present
-        review_expand_buttons = driver.find_elements(By.CLASS_NAME, "w8nwRe")
-        for button in review_expand_buttons:
-            button.click()
-        sleep_time()
-
-        reviews = extract_reviews(driver)
-
-    except NoSuchElementException:
-        reviews = "No reviews found"
-
     company_info = {
-        "Adresse": adresse,
-        "Téléphone": phone,
-        "Site web": website,
-        "Reviews": reviews
+        "Phone": extract_phone_number(driver),
+        "Website": extract_website(driver),
+        "Schedule": extract_schedule(driver),
+        "Instagram": extract_instagram(driver),
+        "Facebook": extract_facebook(driver),
+        "Twitter": extract_twitter(driver),
+        "LinkedIn": extract_linkedin(driver),
+        "Youtube": extract_youtube(driver),
+        "Email": extract_email(driver),
+        "DateOfScraping": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "Reviews": extract_reviews(driver),
     }
-
-
+    
     return company_info
-
-def extract_reviews(driver):
-    # Extract the reviews details
-    authors_elements = driver.find_elements(By.CLASS_NAME, "d4r55")
-    text_elements = driver.find_elements(By.CLASS_NAME, "wiI7pd")
-    stars_elements = driver.find_elements(By.CLASS_NAME, "kvMYJc")
-
-    reviews = []
-    for i in range(len(authors_elements)):
-        author = authors_elements[i].text if i < len(authors_elements) else "No author"
-        text = text_elements[i].text if i < len(text_elements) else "No comment"
-        stars_label = stars_elements[i].get_attribute("aria-label") if i < len(stars_elements) else "No rating"
-        stars = stars_label.split()[0] if stars_label else "No rating"
-        reviews.append({"author": author, "text": text, "stars": stars})
-
-    return reviews
 
 def extract_phone_number(driver):
     # Extract the phone number
     phone = ""
     try:
-        phone = driver.find_element(By.CLASS_NAME.startswith("Appeler le")).text
+        phone_element = driver.find_element(By.XPATH, "//span[contains(@aria-label, 'Appeler le')]")
+        phone = phone_element.text
     except NoSuchElementException:
         phone = "No phone number found"
 
     return phone
 
 def extract_address(driver):
-    # Extract the address
+    # Extract the address without relying on class names
     address = ""
     try:
-        address = driver.find_element(By.LINK_TEXT, "Adresse")
-        address = address.find_element(By.XPATH, "./following-sibling::span").text
+        # This XPATH finds the anchor element containing the text 'Adresse'
+        # Then gets the following sibling that contains the address text
+        address_element = driver.find_element(By.XPATH, "//a[contains(text(), 'Adresse')]/following::span[2]")
+        address = address_element.text
     except NoSuchElementException:
         address = "No address found"
 
     return address
 
 def extract_website(driver):
-    # Extract the website
+    # Extract the website URL
     website = ""
     try:
-        website = driver.find_element(By.LINK_TEXT, "Site web")
-        website = website.find_element(By.CLASS_NAME, "ab_button").text
+        # This XPath looks for an 'a' element with a 'div' child that contains the text 'Site Web'
+        website_element = driver.find_element(By.XPATH, "//a[./div[text()='Site Web']]")
+        website = website_element.get_attribute('href')
     except NoSuchElementException:
-        website = "No website found"
+        website = "No website URL found"
 
     return website
 
 def extract_schedule(driver):
-    # Extract the schedule
-    schedule = ""
+    # Extract the schedule from the table
+    time.sleep(3)
+    schedule = {}
     try:
-        schedule = driver.find_element(By.CSS_SELECTOR, "tr").text
+        extend_schedule_list = driver.find_element(By.XPATH, "//a[contains(text(), 'Horaires')]/following::div/div")
+        extend_schedule_list.click()
+        
+        rows = driver.find_elements(By.XPATH, "//table/tbody/tr")
+        
+        for row in rows:
+            # The first <td> contains the day of the week
+            day_td = row.find_element(By.XPATH, "./td[1]")
+            day = day_td.text.strip()
+
+            # The second <td> contains the hours and any additional information
+            hours_td = row.find_element(By.XPATH, "./td[2]")
+            hours_text = hours_td.text.strip()
+
+            schedule[day] = hours_text
     except NoSuchElementException:
         schedule = "No schedule found"
 
     return schedule
 
 def extract_instagram(driver):
-    # Extract the instagram through the url starting by https://www.instagram.com/
+    # Extract the Instagram URL
     instagram = ""
     try:
-        instagram = driver.find_element(By.LINK_TEXT, "Instagram")
-        instagram = instagram.find_element(By.CLASS_NAME, "ab_button").text
+        instagram_element = driver.find_element(By.XPATH, "//a[contains(@href, 'https://www.instagram.com/')]")
+        instagram = instagram_element.get_attribute('href')
     except NoSuchElementException:
-        instagram = "No instagram found"
-
+        instagram = "No Instagram URL found"
     return instagram
 
 def extract_facebook(driver):
-    # Extract the facebook through the url starting by https://www.facebook.com/
+    # Extract the Facebook URL
     facebook = ""
     try:
-        facebook = driver.find_element(By.LINK_TEXT, "Facebook")
-        facebook = facebook.find_element(By.CLASS_NAME, "ab_button").text
+        # Since the href attribute contains the full Facebook URL, we can directly get it
+        facebook_element = driver.find_element(By.XPATH, "//a[contains(@href, 'https://www.facebook.com/')]")
+        facebook = facebook_element.get_attribute('href')
     except NoSuchElementException:
-        facebook = "No facebook found"
-
-    return facebook 
+        facebook = "No Facebook URL found"
+    return facebook
 
 def extract_twitter(driver):
-    # Extract the twitter through the url starting by https://twitter.com/
+    # Extract the Twitter URL
     twitter = ""
     try:
-        twitter = driver.find_element(By.LINK_TEXT, "Twitter")
-        twitter = twitter.find_element(By.CLASS_NAME, "ab_button").text
+        twitter_element = driver.find_element(By.XPATH, "//a[contains(@href, 'https://twitter.com/')]")
+        twitter = twitter_element.get_attribute('href')
     except NoSuchElementException:
-        twitter = "No twitter found"
-
+        twitter = "No Twitter URL found"
     return twitter
 
 def extract_linkedin(driver):
-    # Extract the linkedin through the url starting by https://www.linkedin.com/
+    # Extract the LinkedIn URL
     linkedin = ""
     try:
-        linkedin = driver.find_element(By.LINK_TEXT, "LinkedIn")
-        linkedin = linkedin.find_element(By.CLASS_NAME, "ab_button").text
+        linkedin_element = driver.find_element(By.XPATH, "//a[contains(@href, 'https://www.linkedin.com/')]")
+        linkedin = linkedin_element.get_attribute('href')
     except NoSuchElementException:
-        linkedin = "No linkedin found"
-
+        linkedin = "No LinkedIn URL found"
     return linkedin
 
 def extract_youtube(driver):
-    # Extract the youtube through the url starting by https://www.youtube.com/
+    # Extract the YouTube URL
     youtube = ""
     try:
-        youtube = driver.find_element(By.LINK_TEXT, "YouTube")
-        youtube = youtube.find_element(By.CLASS_NAME, "ab_button").text
+        youtube_element = driver.find_element(By.XPATH, "//a[contains(@href, 'https://www.youtube.com/')]")
+        youtube = youtube_element.get_attribute('href')
     except NoSuchElementException:
-        youtube = "No youtube found"
-
+        youtube = "No YouTube URL found"
     return youtube
 
 def extract_email(driver):
@@ -199,7 +183,62 @@ def extract_email(driver):
     return email
 
 
-# Read the CSV, search for each company, and update the information
+def extract_reviews(driver):
+    try:
+        reviews = []
+        list_review_button = driver.find_element(
+            By.XPATH, "//span[contains(text(), 'avis Google')]"
+        )
+        list_review_button.click()
+
+        time.sleep(3)
+
+        rows = driver.find_elements(By.CLASS_NAME, "gws-localreviews__google-review")
+        for row in rows:
+            try:
+                author = row.find_element(
+                    By.XPATH,
+                    ".//img[contains(@src, 'https://lh3.googleusercontent.com/')]",
+                )
+                author = author.get_attribute("alt")
+                stars = row.find_element(
+                    By.XPATH, ".//*[contains(@aria-label, 'Note')]"
+                )
+                stars = stars.get_attribute("aria-label")
+                note = stars.split()[2]  # Assuming the format "Note: 4.5 out of 5"
+
+                review_text = ""
+                try:
+                    extended_review_button = row.find_elements(
+                        By.XPATH, ".//a[@class='review-more-link']"
+                    )
+                    if extended_review_button:
+                        extended_review_button[0].click()
+
+                    time.sleep(1)  # Wait for the review to expand
+                    review_text = row.find_element(
+                        By.XPATH, ".//span[@data-expandable-section]"
+                    ).text
+                except NoSuchElementException:
+                    # Handle the case where the 'Plus' button is not present
+                    review_text = row.find_element(
+                        By.XPATH, ".//span[@data-expandable-section]"
+                    )
+                    review_text = (
+                        review_text.text if review_text else "Review text not available"
+                    )
+
+                reviews.append({"author": author, "text": review_text, "stars": note})
+            except NoSuchElementException:
+                print("Problem finding review elements")
+                continue
+
+    except NoSuchElementException:
+        reviews = "No reviews found"
+
+    return reviews
+
+
 filename = './fichier_combine.csv'
 updated_filename = './fichier_combine_updated.csv'
 
@@ -224,7 +263,7 @@ try:
         reader = csv.DictReader(file, delimiter=';')
         # Enregistrer les entêtes existants et ajouter les nouveaux
         existing_fieldnames = reader.fieldnames.copy()
-        new_fieldnames = ["Téléphone", "Site web", "Reviews"]
+        new_fieldnames = ["Phone", "Website", "Reviews", "Schedule", "Instagram", "Facebook", "Twitter", "LinkedIn", "Youtube", "Email", "DateOfScraping"]
         for field in new_fieldnames:
             if field not in existing_fieldnames:
                 existing_fieldnames.append(field)
