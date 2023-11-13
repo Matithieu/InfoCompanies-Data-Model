@@ -54,7 +54,7 @@ def scrape_company_info(driver, company_name, adresse):
         "LinkedIn": extract_linkedin(driver),
         "Youtube": extract_youtube(driver),
         "Email": extract_email(driver),
-        "DateOfScraping": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "DateOfScraping": time.strftime("%Y-%m-%d"),
         "Reviews": extract_reviews(driver),
     }
     
