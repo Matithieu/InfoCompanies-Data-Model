@@ -238,7 +238,6 @@ def extract_reviews(driver):
 
     return reviews
 
-
 filename = './fichier_combine.csv'
 updated_filename = './fichier_combine_updated.csv'
 

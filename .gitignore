@@ -3,6 +3,4 @@
 /Entreprises-crées/*.csv
 /Fichiers_FIN/*.csv
 /Fichiers_FIN/chromedriver-linux64
-/fichier_combine (copie).csv
-/fichier_combine.csv
-/fichier_combine_updated.csv
+/*.csv
