@@ -47,7 +47,7 @@ def scrape_company_info(driver, company_name, adresse):
     company_info = {
         "Phone": extract_phone_number(driver),
         "Website": extract_website(driver),
-        "Schedule": extract_schedule(driver),
+        "Schedule": extract_schedule(driver, company_name),
         "Instagram": extract_instagram(driver),
         "Facebook": extract_facebook(driver),
         "Twitter": extract_twitter(driver),
@@ -96,15 +96,18 @@ def extract_website(driver):
 
     return website
 
-def extract_schedule(driver):
+def extract_schedule(driver, company_name):
     # Extract the schedule from the table
-    time.sleep(3)
+    time.sleep(2)
     schedule = {}
     try:
         extend_schedule_list = driver.find_element(By.XPATH, "//a[contains(text(), 'Horaires')]/following::div/div")
         extend_schedule_list.click()
         
+        time.sleep(2)
+        
         rows = driver.find_elements(By.XPATH, "//table/tbody/tr")
+        print(len(rows))
         
         for row in rows:
             # The first <td> contains the day of the week
