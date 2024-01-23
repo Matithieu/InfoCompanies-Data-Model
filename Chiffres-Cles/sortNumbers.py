@@ -3,7 +3,13 @@ import glob
 
 # Define the path pattern for CSV files
 modele_nom_fichier = "./Chiffres-Cles/chiffres-cles-*.csv"
-chemins_des_fichiers = glob.glob(modele_nom_fichier)
+chemins_des_fichiers = [
+    "Chiffres-Cles/chiffres-cles-2018.csv",
+    "Chiffres-Cles/chiffres-cles-2019.csv",
+    "Chiffres-Cles/chiffres-cles-2020.csv",
+    "Chiffres-Cles/chiffres-cles-2021.csv",
+    "Chiffres-Cles/chiffres-cles-2022.csv",
+]
 
 # Specify the columns to keep
 colonnes_a_conserver = [
@@ -42,8 +48,7 @@ for chemin in chemins_des_fichiers:
     financial_columns = [col for col in data.columns if col.startswith(("Date de cloture ", "CA ", "Résultat "))]
 
     # For clarity, you might not want to rename the first year's columns
-    if year != "2018":  # assuming 2018 is your first year; adjust as needed
-        data.rename(columns={col: f"{col} - {year}" for col in financial_columns}, inplace=True)
+    data.rename(columns={col: f"{col} - {year}" for col in financial_columns}, inplace=True)
 
     data_frames[year] = data
 
