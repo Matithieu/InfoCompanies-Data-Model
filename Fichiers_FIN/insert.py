@@ -7,8 +7,7 @@ data = []
 csv_path = "./fichier_combine_updated.csv"
 with open(csv_path, newline="", encoding="utf-8") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=";")
-    for row in reader:
-        data.append(row)
+    data = list(reader)
 
 # Database connection
 conn = psycopg2.connect(
@@ -22,47 +21,30 @@ conn = psycopg2.connect(
 # Prepare the cursor
 cur = conn.cursor()
 
-for row in data:
-    siren = row["Siren"]
+# Batch update size (adjust as needed)
+batch_size = 100
 
-    # Convert the dictionary strings to valid JSON format
-    reviews_json = json.dumps(eval(row["Reviews"])) if row["Reviews"] else None
-    schedule_json = json.dumps(eval(row["Schedule"])) if row["Schedule"] else None
+for i in range(0, len(data), batch_size):
+    batch = data[i:i + batch_size]
 
     update_query = """
     UPDATE companies
     SET 
-        phone = %s,
-        website = %s,
-        reviews = %s,
-        schedule = %s,
-        instagram = %s,
-        facebook = %s,
-        twitter = %s,
-        linkedin = %s,
-        youtube = %s,
-        email = %s,
-        date_of_scrapping = %s
-    WHERE siren = %s;
+        phone = COALESCE(NULLIF(%(Phone)s, ''), phone),
+        website = COALESCE(NULLIF(%(Website)s, ''), website),
+        reviews = CASE WHEN %(Reviews)s = '' THEN reviews ELSE %(Reviews)s END,
+        schedule = COALESCE(NULLIF(%(Schedule)s, ''), schedule),
+        instagram = COALESCE(NULLIF(%(Instagram)s, ''), instagram),
+        facebook = COALESCE(NULLIF(%(Facebook)s, ''), facebook),
+        twitter = COALESCE(NULLIF(%(Twitter)s, ''), twitter),
+        linkedin = COALESCE(NULLIF(%(LinkedIn)s, ''), linkedin),
+        youtube = COALESCE(NULLIF(%(Youtube)s, ''), youtube),
+        email = COALESCE(NULLIF(%(Email)s, ''), email),
+        date_of_scrapping = %(DateOfScrapping)s
+    WHERE siren = %(Siren)s;
     """
 
-    cur.execute(
-        update_query,
-        (
-            row["Phone"],
-            row["Website"],
-            reviews_json,
-            schedule_json,
-            row["Instagram"],
-            row["Facebook"],
-            row["Twitter"],
-            row["LinkedIn"],
-            row["Youtube"],
-            row["Email"],
-            row["DateOfScrapping"],
-            siren,
-        ),
-    )
+    cur.executemany(update_query, batch)
 
 # Commit the changes to the database
 conn.commit()
