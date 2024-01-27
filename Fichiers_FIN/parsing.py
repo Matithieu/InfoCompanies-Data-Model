@@ -149,7 +149,7 @@ def extract_schedule(driver, company_name):
 
     except NoSuchElementException as e:
         print(f"Could not extract schedule for {company_name}: {e}")
-        schedule = {}
+        schedule = ''
 
     return schedule
 
@@ -319,7 +319,6 @@ def extract_reviews(driver):
 filename = "./fichier_combine.csv"
 updated_filename = "./fichier_combine_updated.csv"
 
-# Vérifiez si le fichier mis à jour existe et doit inclure les entêtes
 file_exists = os.path.isfile(updated_filename)
 number_of_iteraites = 0
 updated_companies_info = {}
