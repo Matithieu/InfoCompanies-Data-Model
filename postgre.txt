@@ -15,16 +15,20 @@ psql
 #Supprime la ligne 2795830 du fichier. (Problème au niveau de la ligne entière)
 sed -i '2795830d' /tmp/fichier_combine.csv
 
-CREATE INDEX idx_code_ape ON entreprises (code_ape);
 
-#Indexer sur d'autres colonnes si besoin
-CREATE INDEX idx_siren ON entreprises (siren);
+#Création des index
+CREATE INDEX idx_siren ON companies (siren);
+CREATE INDEX idx_denomination ON companies (denomination);
 
-3. Considérer l'utilisation d'index composites
-Si vous effectuez souvent des requêtes qui filtrent ou trient par plusieurs colonnes à la fois, envisagez de créer un index composite. Par exemple, si vous recherchez souvent des entreprises par ville et Code APE :
-CREATE INDEX idx_ville_code_ape ON entreprises (ville, code_ape);
-ANALYZE entreprises;
 
+#Considérer l'utilisation d'index composites
+Si vous effectuez souvent des requêtes qui filtrent ou trient par plusieurs colonnes à la fois, envisagez de créer un index composite. 
+Par exemple, si vous recherchez souvent des companies par ville et Code APE :
+CREATE INDEX idx_ville_code_ape ON companies (ville, code_ape);
+ANALYZE companies;
+
+
+#Transfert du fichier csv dans la base de données
 \copy companies(
     Denomination, Siren, Nic, Forme_Juridique, Code_APE, Adresse, Code_postal, 
     Ville, Region, Date_immatriculation, Date_radiation, 
