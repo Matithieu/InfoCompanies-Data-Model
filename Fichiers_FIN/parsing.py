@@ -47,24 +47,22 @@ def scrape_company_info(driver, company_name, adresse):
     except NoSuchElementException:
         pass
 
-    driver.execute_script("document.body.style.zoom='50%'")
-
     sleep_time()
 
     company_info = {
         "Phone": extract_phone_number(driver),
         "Website": extract_website(driver),
-        "Schedule": extract_schedule(driver, company_name),
         "Instagram": extract_instagram(driver),
         "Facebook": extract_facebook(driver),
         "Twitter": extract_twitter(driver),
         "LinkedIn": extract_linkedin(driver),
         "Youtube": extract_youtube(driver),
         "Email": extract_email(driver),
+        "DateOfScrapping": time.strftime("%Y-%m-%d"),
         "Reviews": extract_reviews(driver),
-        "DateOfScraping": time.strftime("%Y-%m-%d"),
+        "Schedule": extract_schedule(driver, company_name),
     }
-    
+
     return company_info
 
 
@@ -77,7 +75,7 @@ def extract_phone_number(driver):
         )
         phone = phone_element.text
     except NoSuchElementException:
-        phone = ""
+        phone = ''
 
     return phone
 
@@ -93,7 +91,7 @@ def extract_address(driver):
         )
         address = address_element.text
     except NoSuchElementException:
-        address = ""
+        address = ''
 
     return address
 
@@ -106,31 +104,52 @@ def extract_website(driver):
         website_element = driver.find_element(By.XPATH, '//a[contains(.,"Site Web")]')
         website = website_element.get_attribute("href")
     except NoSuchElementException:
-        website = ""
+        website = ''
 
     return website
 
 
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+
 def extract_schedule(driver, company_name):
     # Extract the schedule from the table
+    dayOfTheWeek = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
     schedule = {}
+
     try:
-        table = driver.find_elements(By.TAG_NAME, "table")[0]
-        rows = table.find_elements(By.XPATH, "//table/tbody/tr")
+        # Find all tables in the page
+        tables = driver.find_elements(By.TAG_NAME, "table")
 
-        for row in rows:
-            # The first <td> contains the day of the week
-            # The .get_attribute("textContent") method returns the text of a hidden element
-            day_td = row.find_element(By.XPATH, "./td[1]")
-            day = day_td.get_attribute("textContent").strip()
+        # Iterate over each table
+        for table in tables:
+            # Check if the table contains the days of the week in the first column
+            day_column = table.find_elements(By.XPATH, ".//tbody/tr/td[1]")
+            
+            # Check if the day_column has elements
+            if day_column:
+                # Iterate over the days in the first column
+                for day_elem in day_column:
+                    day = day_elem.get_attribute("textContent").strip().lower()
 
-            # The second <td> contains the hours and any additional information
-            hours_td = row.find_element(By.XPATH, "./td[2]")
-            hours_text = hours_td.get_attribute("textContent").strip()
+                    # Check if the day is in the list of daysOfTheWeek
+                    if day in dayOfTheWeek:
+                        # Find the corresponding hours in the second column
+                        hours_td_list = table.find_elements(By.XPATH, ".//tbody/tr[td[1][text()='{}']]/td[2]".format(day))
 
-            schedule[day] = hours_text
-    except NoSuchElementException:
-        schedule = ""
+                        # Check if elements exist in the list before accessing them
+                        if hours_td_list:
+                            # Iterate over the list of hours_td elements to get the text content for each one
+                            for hours_td in hours_td_list:
+                                hours_text = hours_td.get_attribute("textContent").strip()
+
+                            schedule[day] = hours_text
+                        else:
+                            schedule[day] = ''
+
+    except NoSuchElementException as e:
+        print(f"Could not extract schedule for {company_name}: {e}")
+        schedule = {}
 
     return schedule
 
@@ -144,7 +163,7 @@ def extract_instagram(driver):
         )
         instagram = instagram_element.get_attribute("href")
     except NoSuchElementException:
-        instagram = ""
+        instagram = ''
     return instagram
 
 
@@ -158,7 +177,7 @@ def extract_facebook(driver):
         )
         facebook = facebook_element.get_attribute("href")
     except NoSuchElementException:
-        facebook = ""
+        facebook = ''
     return facebook
 
 
@@ -171,7 +190,7 @@ def extract_twitter(driver):
         )
         twitter = twitter_element.get_attribute("href")
     except NoSuchElementException:
-        twitter = ""
+        twitter = ''
     return twitter
 
 
@@ -184,7 +203,7 @@ def extract_linkedin(driver):
         )
         linkedin = linkedin_element.get_attribute("href")
     except NoSuchElementException:
-        linkedin = ""
+        linkedin = ''
     return linkedin
 
 
@@ -197,7 +216,7 @@ def extract_youtube(driver):
         )
         youtube = youtube_element.get_attribute("href")
     except NoSuchElementException:
-        youtube = ""
+        youtube = ''
     return youtube
 
 
@@ -207,7 +226,7 @@ def extract_email(driver):
     try:
         email = driver.find_element(By.LINK_TEXT, "Email")
     except NoSuchElementException:
-        email = ""
+        email = ''
 
     return email
 
@@ -216,23 +235,26 @@ def extract_reviews(driver):
     # Extract the stars and the number of reviews
     reviews = {}
     try:
-        print("Extracting reviews")
-        
         # Updated XPath expressions
-        stars_element = driver.find_element(
+        stars_elements = driver.find_elements(
             By.XPATH, "//span[contains(@aria-label, 'Note')]"
         )
-        number_of_reviews = driver.find_element(
+        number_of_reviews_elements = driver.find_elements(
             By.XPATH, "//a[contains(text(), 'avis')]"
         )
-        
-        reviews = {
-            "stars": stars_element.get_attribute("aria-label").split()[2],
-            "number_of_reviews": number_of_reviews.text.split()[0],
-        }
-        print(f"Reviews: {reviews}")
-    except NoSuchElementException as e:
-        print(f"Error: {e}")
+
+        # Check if elements exist in the lists before accessing them
+        if stars_elements:
+            reviews['stars'] = stars_elements[0].get_attribute("aria-label").split()[2]
+        else:
+            reviews['stars'] = ''
+
+        if number_of_reviews_elements:
+            reviews['number_of_reviews'] = number_of_reviews_elements[0].text.split()[0]
+        else:
+            reviews['number_of_reviews'] = ''
+
+    except NoSuchElementException:
         reviews = {}
 
     return reviews
@@ -329,7 +351,7 @@ try:
             "LinkedIn",
             "Youtube",
             "Email",
-            "DateOfScraping",
+            "DateOfScrapping",
         ]
         for field in new_fieldnames:
             if field not in existing_fieldnames:
@@ -356,7 +378,7 @@ try:
 
             for line in reader:
                 search_name = line["Dénomination"]
-                adresse = line["Adresse"]
+                adresse = line["Ville"]
 
                 # Vérifiez si les informations sont déjà présentes dans le dictionnaire
                 company_info = updated_companies_info.get(search_name)
