@@ -1,14 +1,11 @@
 import csv
 import os
-import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 
 import time
 import random
@@ -16,7 +13,7 @@ import random
 
 # Helper functions for browser setup and random sleep times
 def sleep_time():
-    time.sleep(random.randint(2, 3))
+    time.sleep(random.randint(1, 2))
 
 
 def configure_selenium():
@@ -75,7 +72,7 @@ def extract_phone_number(driver):
         )
         phone = phone_element.text
     except NoSuchElementException:
-        phone = ''
+        phone = ""
 
     return phone
 
@@ -91,7 +88,7 @@ def extract_address(driver):
         )
         address = address_element.text
     except NoSuchElementException:
-        address = ''
+        address = ""
 
     return address
 
@@ -104,7 +101,7 @@ def extract_website(driver):
         website_element = driver.find_element(By.XPATH, '//a[contains(.,"Site Web")]')
         website = website_element.get_attribute("href")
     except NoSuchElementException:
-        website = ''
+        website = ""
 
     return website
 
@@ -112,9 +109,18 @@ def extract_website(driver):
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
+
 def extract_schedule(driver, company_name):
     # Extract the schedule from the table
-    dayOfTheWeek = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+    dayOfTheWeek = [
+        "lundi",
+        "mardi",
+        "mercredi",
+        "jeudi",
+        "vendredi",
+        "samedi",
+        "dimanche",
+    ]
     schedule = {}
 
     try:
@@ -125,7 +131,7 @@ def extract_schedule(driver, company_name):
         for table in tables:
             # Check if the table contains the days of the week in the first column
             day_column = table.find_elements(By.XPATH, ".//tbody/tr/td[1]")
-            
+
             # Check if the day_column has elements
             if day_column:
                 # Iterate over the days in the first column
@@ -135,21 +141,26 @@ def extract_schedule(driver, company_name):
                     # Check if the day is in the list of daysOfTheWeek
                     if day in dayOfTheWeek:
                         # Find the corresponding hours in the second column
-                        hours_td_list = table.find_elements(By.XPATH, ".//tbody/tr[td[1][text()='{}']]/td[2]".format(day))
+                        hours_td_list = table.find_elements(
+                            By.XPATH,
+                            ".//tbody/tr[td[1][text()='{}']]/td[2]".format(day),
+                        )
 
                         # Check if elements exist in the list before accessing them
                         if hours_td_list:
                             # Iterate over the list of hours_td elements to get the text content for each one
                             for hours_td in hours_td_list:
-                                hours_text = hours_td.get_attribute("textContent").strip()
+                                hours_text = hours_td.get_attribute(
+                                    "textContent"
+                                ).strip()
 
                             schedule[day] = hours_text
                         else:
-                            schedule[day] = ''
+                            schedule[day] = ""
 
     except NoSuchElementException as e:
         print(f"Could not extract schedule for {company_name}: {e}")
-        schedule = ''
+        schedule = ""
 
     return schedule
 
@@ -163,7 +174,7 @@ def extract_instagram(driver):
         )
         instagram = instagram_element.get_attribute("href")
     except NoSuchElementException:
-        instagram = ''
+        instagram = ""
     return instagram
 
 
@@ -177,7 +188,7 @@ def extract_facebook(driver):
         )
         facebook = facebook_element.get_attribute("href")
     except NoSuchElementException:
-        facebook = ''
+        facebook = ""
     return facebook
 
 
@@ -190,7 +201,7 @@ def extract_twitter(driver):
         )
         twitter = twitter_element.get_attribute("href")
     except NoSuchElementException:
-        twitter = ''
+        twitter = ""
     return twitter
 
 
@@ -203,7 +214,7 @@ def extract_linkedin(driver):
         )
         linkedin = linkedin_element.get_attribute("href")
     except NoSuchElementException:
-        linkedin = ''
+        linkedin = ""
     return linkedin
 
 
@@ -216,7 +227,7 @@ def extract_youtube(driver):
         )
         youtube = youtube_element.get_attribute("href")
     except NoSuchElementException:
-        youtube = ''
+        youtube = ""
     return youtube
 
 
@@ -226,7 +237,7 @@ def extract_email(driver):
     try:
         email = driver.find_element(By.LINK_TEXT, "Email")
     except NoSuchElementException:
-        email = ''
+        email = ""
 
     return email
 
@@ -245,14 +256,14 @@ def extract_reviews(driver):
 
         # Check if elements exist in the lists before accessing them
         if stars_elements:
-            reviews['stars'] = stars_elements[0].get_attribute("aria-label").split()[2]
+            reviews["stars"] = stars_elements[0].get_attribute("aria-label").split()[2]
         else:
-            reviews['stars'] = ''
+            reviews["stars"] = ""
 
         if number_of_reviews_elements:
-            reviews['number_of_reviews'] = number_of_reviews_elements[0].text.split()[0]
+            reviews["number_of_reviews"] = number_of_reviews_elements[0].text.split()[0]
         else:
-            reviews['number_of_reviews'] = ''
+            reviews["number_of_reviews"] = ""
 
     except NoSuchElementException:
         reviews = {}
@@ -323,13 +334,13 @@ file_exists = os.path.isfile(updated_filename)
 number_of_iteraites = 0
 updated_companies_info = {}
 
-# Vérifiez si le fichier mis à jour existe et doit inclure les entêtes
+# Verify if the updated file exists and needs to include the headers
 file_exists = os.path.isfile(updated_filename)
 if file_exists:
     with open(updated_filename, mode="r", encoding="utf-8") as updated_file:
         reader = csv.DictReader(updated_file, delimiter=";")
         for row in reader:
-            # Utilisez la Dénomination de l'entreprise comme clé pour le dictionnaire
+            # Use the company name as key for the dictionary
             updated_companies_info[row["Dénomination"]] = row
 
 driver = configure_selenium()
@@ -337,7 +348,7 @@ driver = configure_selenium()
 try:
     with open(filename, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file, delimiter=";")
-        # Enregistrer les entêtes existants et ajouter les nouveaux
+        # Save the existing headers and add the new ones
         existing_fieldnames = reader.fieldnames.copy()
         new_fieldnames = [
             "Phone",
@@ -356,62 +367,61 @@ try:
             if field not in existing_fieldnames:
                 existing_fieldnames.append(field)
 
-        # Ouvrez le fichier CSV pour la mise à jour en mode écriture
+        # Open the CSV file for updating in write mode
         with open(
             updated_filename, mode="a+", encoding="utf-8", newline=""
         ) as updated_file:
-            updated_file.seek(0)  # Allez au début du fichier pour vérifier les en-têtes
+            updated_file.seek(
+                0
+            )  # Go to the beginning of the file to check if it's empty
             first_line = updated_file.readline()
-            if not first_line:  # Si le fichier est vide, écrivez les en-têtes
+            if not first_line:  # If the file is empty, write the headers
                 writer = csv.DictWriter(
                     updated_file, fieldnames=existing_fieldnames, delimiter=";"
                 )
                 writer.writeheader()
-            else:  # Sinon, créez simplement le writer sans écrire les en-têtes
+            else:  # Else, append to the existing file
                 writer = csv.DictWriter(
                     updated_file, fieldnames=existing_fieldnames, delimiter=";"
                 )
 
-            # Retournez à la fin du fichier pour commencer à écrire
+            # Return to the end of the file to start writing
             updated_file.seek(0, os.SEEK_END)
 
             for line in reader:
                 search_name = line["Dénomination"]
                 adresse = line["Ville"]
 
-                # Vérifiez si les informations sont déjà présentes dans le dictionnaire
+                # Verify if the information is already present in the dictionary
                 company_info = updated_companies_info.get(search_name)
-                if company_info and all(
-                    company_info.get(field, "").strip() for field in new_fieldnames
+                if (
+                    company_info
+                    and "Dénomination" in company_info
+                    and company_info["Dénomination"].strip()
                 ):
-                    print(
-                        f"Les informations pour {search_name} existent déjà. Passage à l'élément suivant."
-                    )
-                    continue  # Passez à la ligne suivante sans rescraping
+                    continue  # If the company is already present, skip it
 
-                # Si les informations sont manquantes, lancez le script de scraping
+                # If the information is missing, launch the scraping script
                 try:
                     company_info = scrape_company_info(driver, search_name, adresse)
                     line.update(company_info)
                     writer.writerow(
                         line
-                    )  # Écrire la ligne mise à jour immédiatement dans le fichier CSV
-                    print(f"Informations mises à jour pour {search_name}")
+                    )  # Write in the file the updated information for the company
+                    print(f"Data updated for {search_name}")
                     number_of_iteraites += 1
                 except KeyboardInterrupt:
-                    # Si l'utilisateur interrompt le programme, sortez de la boucle
-                    print(" Interruption par l'utilisateur. Fin de la mise à jour.")
-                    print(f"Nombre d'itérations: {number_of_iteraites}")
+                    # If the user interrupts the program, exit the loop
+                    print("Stoppped by the user. End of update.")
+                    print(f"Number of iterations : {number_of_iteraites}")
 
                     break
                 except Exception as e:
-                    print(
-                        f"Erreur lors de la récupération des informations pour {search_name}: {e}"
-                    )
+                    print(f"Error while scraping {search_name} : {e}")
 except KeyboardInterrupt:
-    print("Interruption par l'utilisateur avant la lecture du CSV.")
-    print(f"Nombre d'itérations: {number_of_iteraites}")
+    print("Interrupted by the user. End of update.")
+    print(f"Number of iterations: {number_of_iteraites}")
 except Exception as e:
-    print(f"Erreur globale: {e}")
+    print(f"Global error: {e}")
 finally:
     driver.quit()
