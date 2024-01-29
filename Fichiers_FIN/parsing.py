@@ -331,16 +331,14 @@ filename = "./fichier_combine.csv"
 updated_filename = "./fichier_combine_updated.csv"
 
 file_exists = os.path.isfile(updated_filename)
-number_of_iteraites = 0
+number_of_iterations = 0
 updated_companies_info = {}
 
-# Verify if the updated file exists and needs to include the headers
-file_exists = os.path.isfile(updated_filename)
+# Load updated data before opening the CSV file
 if file_exists:
     with open(updated_filename, mode="r", encoding="utf-8") as updated_file:
         reader = csv.DictReader(updated_file, delimiter=";")
         for row in reader:
-            # Use the company name as key for the dictionary
             updated_companies_info[row["Dénomination"]] = row
 
 driver = configure_selenium()
@@ -348,79 +346,49 @@ driver = configure_selenium()
 try:
     with open(filename, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file, delimiter=";")
-        # Save the existing headers and add the new ones
         existing_fieldnames = reader.fieldnames.copy()
         new_fieldnames = [
-            "Phone",
-            "Website",
-            "Reviews",
-            "Schedule",
-            "Instagram",
-            "Facebook",
-            "Twitter",
-            "LinkedIn",
-            "Youtube",
-            "Email",
-            "DateOfScrapping",
+            "Phone", "Website", "Reviews", "Schedule", "Instagram", "Facebook",
+            "Twitter", "LinkedIn", "Youtube", "Email", "DateOfScrapping",
         ]
         for field in new_fieldnames:
             if field not in existing_fieldnames:
                 existing_fieldnames.append(field)
 
-        # Open the CSV file for updating in write mode
-        with open(
-            updated_filename, mode="a+", encoding="utf-8", newline=""
-        ) as updated_file:
-            updated_file.seek(
-                0
-            )  # Go to the beginning of the file to check if it's empty
+        with open(updated_filename, mode="a+", encoding="utf-8", newline="") as updated_file:
+            updated_file.seek(0)
             first_line = updated_file.readline()
-            if not first_line:  # If the file is empty, write the headers
-                writer = csv.DictWriter(
-                    updated_file, fieldnames=existing_fieldnames, delimiter=";"
-                )
+            if not first_line:
+                writer = csv.DictWriter(updated_file, fieldnames=existing_fieldnames, delimiter=";")
                 writer.writeheader()
-            else:  # Else, append to the existing file
-                writer = csv.DictWriter(
-                    updated_file, fieldnames=existing_fieldnames, delimiter=";"
-                )
+            else:
+                writer = csv.DictWriter(updated_file, fieldnames=existing_fieldnames, delimiter=";")
 
-            # Return to the end of the file to start writing
             updated_file.seek(0, os.SEEK_END)
 
             for line in reader:
                 search_name = line["Dénomination"]
                 adresse = line["Ville"]
 
-                # Verify if the information is already present in the dictionary
                 company_info = updated_companies_info.get(search_name)
-                if (
-                    company_info
-                    and "Dénomination" in company_info
-                    and company_info["Dénomination"].strip()
-                ):
-                    continue  # If the company is already present, skip it
+                if company_info and "Dénomination" in company_info and company_info["Dénomination"].strip():
+                    continue
 
-                # If the information is missing, launch the scraping script
                 try:
                     company_info = scrape_company_info(driver, search_name, adresse)
                     line.update(company_info)
-                    writer.writerow(
-                        line
-                    )  # Write in the file the updated information for the company
+                    writer.writerow(line)
                     print(f"Data updated for {search_name}")
-                    number_of_iteraites += 1
+                    number_of_iterations += 1
                 except KeyboardInterrupt:
-                    # If the user interrupts the program, exit the loop
-                    print("Stoppped by the user. End of update.")
-                    print(f"Number of iterations : {number_of_iteraites}")
-
+                    print("Stopped by the user. End of update.")
+                    print(f"Number of iterations: {number_of_iterations}")
                     break
                 except Exception as e:
-                    print(f"Error while scraping {search_name} : {e}")
+                    print(f"Error while scraping {search_name}: {e}")
 except KeyboardInterrupt:
     print("Interrupted by the user. End of update.")
-    print(f"Number of iterations: {number_of_iteraites}")
+    print(f"Number of iterations: {number_of_iterations}")
 except Exception as e:
     print(f"Global error: {e}")
 finally:
