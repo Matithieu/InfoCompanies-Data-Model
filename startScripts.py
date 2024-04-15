@@ -9,6 +9,7 @@ scripts = [
     "Entreprises-Radiées/sortRadiated.py",
     "Fichiers_FIN/finalSort.py",
     "Fichiers_FIN/rename.py",
+    "Fichiers_FIN/renameColumnsFinal.py",
     #"Fichiers_FIN/merging.py",
     #"Fichiers_FIN/main",
 ]

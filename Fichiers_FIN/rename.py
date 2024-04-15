@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Spécifiez le chemin vers votre fichier CSV existant
-chemin_fichier_exist = 'fichier_combine.csv'
+chemin_fichier_exist = './fichier_combine.csv'
 
 # Les nouvelles colonnes que vous souhaitez ajouter comme en-têtes
 nouvelles_colonnes = [
