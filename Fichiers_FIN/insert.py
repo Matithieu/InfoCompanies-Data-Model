@@ -1,10 +1,13 @@
 import csv
-import json
 import psycopg2
+
+# DON'T FORGET TO CREATE THE INDEXES !!!
 
 # Read the CSV file
 data = []
 csv_path = "./fichier_combine_updated.csv"
+# csv_path = "/tmp/combine.csv"
+
 with open(csv_path, newline="", encoding="utf-8") as csvfile:
     reader = csv.DictReader(csvfile, delimiter=";")
     data = list(reader)
@@ -30,18 +33,18 @@ for i in range(0, len(data), batch_size):
     update_query = """
     UPDATE companies
     SET 
-        phone = COALESCE(NULLIF(%(Phone)s, ''), phone),
-        website = COALESCE(NULLIF(%(Website)s, ''), website),
-        reviews = CASE WHEN %(Reviews)s = '' THEN reviews ELSE %(Reviews)s END,
-        schedule = COALESCE(NULLIF(%(Schedule)s, ''), schedule),
-        instagram = COALESCE(NULLIF(%(Instagram)s, ''), instagram),
-        facebook = COALESCE(NULLIF(%(Facebook)s, ''), facebook),
-        twitter = COALESCE(NULLIF(%(Twitter)s, ''), twitter),
-        linkedin = COALESCE(NULLIF(%(LinkedIn)s, ''), linkedin),
-        youtube = COALESCE(NULLIF(%(Youtube)s, ''), youtube),
-        email = COALESCE(NULLIF(%(Email)s, ''), email),
-        date_of_scrapping = %(DateOfScrapping)s
-    WHERE siren = %(Siren)s;
+        phone_number = COALESCE(NULLIF(%(phone_number)s, ''), phone_number),
+        website = COALESCE(NULLIF(%(website)s, ''), website),
+        reviews = CASE WHEN %(reviews)s = '' THEN reviews ELSE %(reviews)s END,
+        schedule = COALESCE(NULLIF(%(schedule)s, ''), schedule),
+        instagram = COALESCE(NULLIF(%(instagram)s, ''), instagram),
+        facebook = COALESCE(NULLIF(%(facebook)s, ''), facebook),
+        twitter = COALESCE(NULLIF(%(twitter)s, ''), twitter),
+        linkedin = COALESCE(NULLIF(%(linkedin)s, ''), linkedin),
+        youtube = COALESCE(NULLIF(%(youtube)s, ''), youtube),
+        email = COALESCE(NULLIF(%(email)s, ''), email),
+        scraping_date = NULLIF(%(scraping_date)s, '')::date
+    WHERE siren_number = %(siren_number)s;
     """
 
     cur.executemany(update_query, batch)

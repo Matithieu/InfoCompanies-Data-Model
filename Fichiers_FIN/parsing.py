@@ -47,17 +47,17 @@ def scrape_company_info(driver, company_name, adresse):
     sleep_time()
 
     company_info = {
-        "Phone": extract_phone_number(driver),
-        "Website": extract_website(driver),
-        "Instagram": extract_instagram(driver),
-        "Facebook": extract_facebook(driver),
-        "Twitter": extract_twitter(driver),
-        "LinkedIn": extract_linkedin(driver),
-        "Youtube": extract_youtube(driver),
-        "Email": extract_email(driver),
-        "DateOfScrapping": time.strftime("%Y-%m-%d"),
-        "Reviews": extract_reviews(driver),
-        "Schedule": extract_schedule(driver, company_name),
+        "phone_number": extract_phone_number(driver),
+        "website": extract_website(driver),
+        "instagram": extract_instagram(driver),
+        "facebook": extract_facebook(driver),
+        "twitter": extract_twitter(driver),
+        "linkedin": extract_linkedin(driver),
+        "youtube": extract_youtube(driver),
+        "email": extract_email(driver),
+        "scraping_date": time.strftime("%Y-%m-%d"),
+        "reviews": extract_reviews(driver),
+        "schedule": extract_schedule(driver, company_name),
     }
 
     return company_info
@@ -327,7 +327,7 @@ def extract_reviews(driver):
 #     return reviews
 
 
-filename = "./fichier_combine.csv"
+filename = "./final.csv"
 updated_filename = "./fichier_combine_updated.csv"
 
 file_exists = os.path.isfile(updated_filename)
@@ -339,7 +339,7 @@ if file_exists:
     with open(updated_filename, mode="r", encoding="utf-8") as updated_file:
         reader = csv.DictReader(updated_file, delimiter=";")
         for row in reader:
-            updated_companies_info[row["Dénomination"]] = row
+            updated_companies_info[row["company_name"]] = row
 
 driver = configure_selenium()
 
@@ -348,8 +348,8 @@ try:
         reader = csv.DictReader(file, delimiter=";")
         existing_fieldnames = reader.fieldnames.copy()
         new_fieldnames = [
-            "Phone", "Website", "Reviews", "Schedule", "Instagram", "Facebook",
-            "Twitter", "LinkedIn", "Youtube", "Email", "DateOfScrapping",
+            "phone_number", "website", "reviews", "schedule", "instagram", "facebook",
+            "twitter", "linkedin", "youtube", "email", "scraping_date",
         ]
         for field in new_fieldnames:
             if field not in existing_fieldnames:
@@ -367,11 +367,11 @@ try:
             updated_file.seek(0, os.SEEK_END)
 
             for line in reader:
-                search_name = line["Dénomination"]
-                adresse = line["Ville"]
+                search_name = line["company_name"]
+                adresse = line["city"]
 
                 company_info = updated_companies_info.get(search_name)
-                if company_info and "Dénomination" in company_info and company_info["Dénomination"].strip():
+                if company_info and "company_name" in company_info and company_info["company_name"].strip():
                     continue
 
                 try:

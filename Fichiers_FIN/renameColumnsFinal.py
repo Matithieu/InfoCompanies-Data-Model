@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Chargement du fichier CSV
-df = pd.read_csv('./fichier_combine.csv', delimiter=';')
+df = pd.read_csv('/tmp/fichier_combine.csv', delimiter=';')
 
 # Dictionnaire de traduction des en-têtes
 translation_dict = {
@@ -72,7 +72,6 @@ translation_dict = {
     'linkedin': 'linkedin',
     'youtube': 'youtube',
     'email': 'email',
-    'dateOfScrapping': 'scraping_date',
     'Phone': 'phone_number',
     'Website': 'website',
     'Reviews': 'reviews',

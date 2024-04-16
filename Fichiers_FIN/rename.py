@@ -5,9 +5,9 @@ chemin_fichier_exist = './fichier_combine.csv'
 
 # Les nouvelles colonnes que vous souhaitez ajouter comme en-têtes
 nouvelles_colonnes = [
-    'phone', 'website', 'reviews', 'schedule',
+    'phone_number', 'website', 'reviews', 'schedule',
     'instagram', 'facebook', 'twitter', 'linkedin', 'youtube', 'email',
-    'dateOfScrapping'
+    'scraping_date'
 ]
 
 # Lire le fichier CSV existant avec pandas

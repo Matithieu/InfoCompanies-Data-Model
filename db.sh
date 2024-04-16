@@ -1,17 +1,31 @@
 #!/bin/bash
 
+# chmod +r /home/mathieu/Téléchargements/DataSets/fichier_combine.csv
+
+# cp /home/mathieu/Téléchargements/DataSets/fichier_combine.csv /tmp/fichier_combine.csv
+
+# sudo chmod 6r ./final.csv
+
+# sudo cp ./final.csv /tmp/final.csv
+
+
 csv_file='/tmp/final.csv'
 
 # Verify if the CSV file exists
 if [ ! -f "$csv_file" ]; then
-    echo "The CSV file '$csv_file' doen't exist. Don't forget to do chmod +x"
+    echo "The CSV file '$csv_file' doesn't exist."
     exit 1
 fi
 
 # Function to transfer the CSV file to the PostgreSQL database
 transfer_csv_to_database() {
+    # Create indexes
+    sudo -u postgres psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
+    sudo -u postgres psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
+
     local columns=$(head -1 "$csv_file" | tr ';' ',')
-    # Transférer le fichier CSV dans la base de données PostgreSQL
+
+    # Tranfer the CSV file to the PostgreSQL database and create the indexes
     sudo -u postgres psql -d postgres -c "\copy companies($columns) FROM '$csv_file' DELIMITER ';' CSV HEADER;"
 }
 
