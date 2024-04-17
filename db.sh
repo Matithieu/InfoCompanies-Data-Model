@@ -1,13 +1,16 @@
 #!/bin/bash
 
-# sudo -E python3 ./startScripts.py
+# To launch the script: sudo -E ./db.sh
+# On zsh: sudo -E sh db.sh
 
-# chmod +r ./fichier_combine.csv
-# cp ./fichier_combine.csv /tmp/fichier_combine.csv
+python3 ./startScripts.py
 
-# sudo -E python3 ./Fichier_FIN/renameColumnsFinal.py
-# sudo chmod +r ./final.csv
-# sudo cp ./final.csv /tmp/final.csv
+chmod +r ./fichier_combine.csv
+cp ./fichier_combine.csv /tmp/fichier_combine.csv
+
+python3 Fichiers_FIN/renameColumnsFinal.py
+sudo chmod +r ./final.csv
+sudo cp ./final.csv /tmp/final.csv
 # sudo -E python3 ./clean.py
 
 
@@ -66,4 +69,4 @@ else
 fi
 
 
-# sudo -E python3 ./Fichiers_FIN/insert.py
+python3 Fichiers_FIN/insert.py
