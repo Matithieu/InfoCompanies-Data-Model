@@ -1,12 +1,14 @@
 #!/bin/bash
 
-# chmod +r /home/mathieu/Téléchargements/DataSets/fichier_combine.csv
+# sudo -E python3 ./startScripts.py
 
-# cp /home/mathieu/Téléchargements/DataSets/fichier_combine.csv /tmp/fichier_combine.csv
+# chmod +r ./fichier_combine.csv
+# cp ./fichier_combine.csv /tmp/fichier_combine.csv
 
-# sudo chmod 6r ./final.csv
-
+# sudo -E python3 ./Fichier_FIN/renameColumnsFinal.py
+# sudo chmod +r ./final.csv
 # sudo cp ./final.csv /tmp/final.csv
+# sudo -E python3 ./clean.py
 
 
 csv_file='/tmp/final.csv'
@@ -62,3 +64,6 @@ if [ $? -ne 0 ]; then
 else
     echo "Transfer of the CSV file to the PostgreSQL database successful."
 fi
+
+
+# sudo -E python3 ./Fichiers_FIN/insert.py
