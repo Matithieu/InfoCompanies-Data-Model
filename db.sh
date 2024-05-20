@@ -3,18 +3,18 @@
 # To launch the script: sudo -E ./db.sh
 # On zsh: sudo -E sh db.sh
 
-python3 ./startScripts.py
+# python3 ./startScripts.py
 
-chmod +r ./fichier_combine.csv
-cp ./fichier_combine.csv /tmp/fichier_combine.csv
+# chmod +r ./fichier_combine.csv
+# cp ./fichier_combine.csv /tmp/fichier_combine.csv
 
-python3 Fichiers_FIN/renameColumnsFinal.py
+# python3 Fichiers_FIN/renameColumnsFinal.py
 sudo chmod +r ./final.csv
 sudo cp ./final.csv /tmp/final.csv
 # sudo -E python3 ./clean.py
 
-
 csv_file='/tmp/final.csv'
+container_csv_file='/csv/final.csv'
 
 # Verify if the CSV file exists
 if [ ! -f "$csv_file" ]; then
@@ -22,19 +22,30 @@ if [ ! -f "$csv_file" ]; then
     exit 1
 fi
 
+# Function to get the PostgreSQL container ID
+get_postgres_container_id() {
+    docker ps --filter "ancestor=postgres" --format "{{.ID}}"
+}
+
 # Function to transfer the CSV file to the PostgreSQL database
 transfer_csv_to_database() {
+    local postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
     # Create indexes
-    sudo -u postgres psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
-    sudo -u postgres psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
+    docker exec -u postgres -it $postgres_container psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
+    docker exec -u postgres -it $postgres_container psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
 
     local columns=$(head -1 "$csv_file" | tr ';' ',')
 
-    # Tranfer the CSV file to the PostgreSQL database and create the indexes
-    sudo -u postgres psql -d postgres -c "\copy companies($columns) FROM '$csv_file' DELIMITER ';' CSV HEADER;"
+    # Transfer the CSV file to the PostgreSQL database and create the indexes
+    docker exec -u postgres -it $postgres_container psql -d postgres -c "\copy companies($columns) FROM '$container_csv_file' DELIMITER ';' CSV HEADER;"
 }
 
-# Fuction to remove the error line from the CSV file
+# Function to remove the error line from the CSV file
 remove_error_line() {
     # Delete the line from the CSV file
     sed -i "$1d" "$csv_file"
@@ -67,6 +78,5 @@ if [ $? -ne 0 ]; then
 else
     echo "Transfer of the CSV file to the PostgreSQL database successful."
 fi
-
 
 python3 Fichiers_FIN/insert.py
