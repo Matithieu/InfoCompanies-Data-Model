@@ -9,8 +9,8 @@
 # cp ./fichier_combine.csv /tmp/fichier_combine.csv
 
 # python3 Fichiers_FIN/renameColumnsFinal.py
-sudo chmod +r ./final.csv
-sudo cp ./final.csv /tmp/final.csv
+sudo chmod +r ./InfoCompanies-Data-Model/final.csv
+sudo cp ./InfoCompanies-Data-Model/final.csv /tmp/final.csv
 # sudo -E python3 ./clean.py
 
 csv_file='/tmp/final.csv'
@@ -79,4 +79,4 @@ else
     echo "Transfer of the CSV file to the PostgreSQL database successful."
 fi
 
-python3 Fichiers_FIN/insert.py
+python3 ./InfoCompanies-Data-Model/Fichiers_FIN/insert.py

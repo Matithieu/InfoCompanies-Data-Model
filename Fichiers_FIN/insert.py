@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Read the CSV file
 data = []
-csv_path = "./fichier_combine_updated.csv"
+csv_path = "./InfoCompanies-Data-Model/fichier_combine_updated.csv"
 # csv_path = "/tmp/combine.csv"
 
 logging.info("Reading the CSV file...")

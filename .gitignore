@@ -4,3 +4,4 @@
 /Fichiers_FIN/*.csv
 /Fichiers_FIN/chromedriver-linux64
 /*.csv
+!template.csv
