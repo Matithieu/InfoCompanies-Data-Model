@@ -9,12 +9,13 @@
 # cp ./fichier_combine.csv /tmp/fichier_combine.csv
 
 # python3 Fichiers_FIN/renameColumnsFinal.py
-sudo chmod +r ./InfoCompanies-Data-Model/final.csv
-sudo cp ./InfoCompanies-Data-Model/final.csv /tmp/final.csv
+CSV_FILE="$1"
+sudo chmod +r "./InfoCompanies-Data-Model/$CSV_FILE"
+sudo cp "./InfoCompanies-Data-Model/$CSV_FILE" "/tmp/$CSV_FILE"
 # sudo -E python3 ./clean.py
 
-csv_file='/tmp/final.csv'
-container_csv_file='/csv/final.csv'
+csv_file="/tmp/$CSV_FILE"
+container_csv_file="/csv/$CSV_FILE"
 
 # Verify if the CSV file exists
 if [ ! -f "$csv_file" ]; then
@@ -29,20 +30,22 @@ get_postgres_container_id() {
 
 # Function to transfer the CSV file to the PostgreSQL database
 transfer_csv_to_database() {
-    local postgres_container=$(get_postgres_container_id)
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
     if [ -z "$postgres_container" ]; then
         echo "No running PostgreSQL container found."
         exit 1
     fi
 
     # Create indexes
-    docker exec -u postgres -it $postgres_container psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
-    docker exec -u postgres -it $postgres_container psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
 
-    local columns=$(head -1 "$csv_file" | tr ';' ',')
+    local columns
+    columns=$(head -1 "$csv_file" | tr ';' ',')
 
     # Transfer the CSV file to the PostgreSQL database and create the indexes
-    docker exec -u postgres -it $postgres_container psql -d postgres -c "\copy companies($columns) FROM '$container_csv_file' DELIMITER ';' CSV HEADER;"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy companies($columns) FROM '$container_csv_file' DELIMITER ';' CSV HEADER;"
 }
 
 # Function to remove the error line from the CSV file
