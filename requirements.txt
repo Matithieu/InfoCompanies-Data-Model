@@ -2,8 +2,4 @@ requests
 beautifulsoup4
 selenium
 webdriver_manager
-csv
-os
-datetime
-random
-time
+psycopg2-binary

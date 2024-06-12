@@ -82,4 +82,9 @@ else
     echo "Transfer of the CSV file to the PostgreSQL database successful."
 fi
 
-python3 ./InfoCompanies-Data-Model/Fichiers_FIN/insert.py
+# Check if the CSV file is the template
+if [ "$CSV_FILE" = "template.csv" ]; then
+    echo "Skipping insertion as the CSV file is the template."
+else
+    python3 ./InfoCompanies-Data-Model/Fichiers_FIN/insert.py
+fi
