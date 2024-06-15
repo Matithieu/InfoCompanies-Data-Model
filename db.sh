@@ -37,15 +37,27 @@ transfer_csv_to_database() {
         exit 1
     fi
 
-    # Create indexes
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
-
     local columns
     columns=$(head -1 "$csv_file" | tr ';' ',')
 
-    # Transfer the CSV file to the PostgreSQL database and create the indexes
+    # Transfer the CSV file to the PostgreSQL database
     docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy companies($columns) FROM '$container_csv_file' DELIMITER ';' CSV HEADER;"
+}
+
+# Function to create indexes in the PostgreSQL database
+create_indexes() {
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_user_id ON company_seen (user_id);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_company_ids_company_ids ON company_seen_company_ids (company_ids);"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_company_ids_company_seen_id ON company_seen_company_ids (company_seen_id);"
 }
 
 # Function to remove the error line from the CSV file
@@ -72,15 +84,26 @@ if [ $? -ne 0 ]; then
         remove_error_line "$line_number"
 
         # Retry the transfer
-        transfer_csv_to_database
+        output=$(transfer_csv_to_database 2>&1)
+
+        if [ $? -ne 0 ]; then
+            echo "Error during the transfer of the CSV file to the PostgreSQL database : $output"
+            # Restore the backup
+            mv "$csv_file.bak" "$csv_file"
+            exit 1
+        fi
     else
         echo "Error during the transfer of the CSV file to the PostgreSQL database : $output"
         # Restore the backup
         mv "$csv_file.bak" "$csv_file"
+        exit 1
     fi
-else
-    echo "Transfer of the CSV file to the PostgreSQL database successful."
 fi
+
+echo "Transfer of the CSV file to the PostgreSQL database successful."
+
+# Create indexes
+create_indexes
 
 # Check if the CSV file is the template
 if [ "$CSV_FILE" = "template.csv" ]; then
