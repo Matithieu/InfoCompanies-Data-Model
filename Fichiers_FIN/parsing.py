@@ -2,18 +2,19 @@ import csv
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
-
 from selenium.common.exceptions import NoSuchElementException
-
 import time
 import random
+import multiprocessing
+from multiprocessing import Manager
+import pandas as pd
+import numpy as np
 
 
-# Helper functions for browser setup and random sleep times
 def sleep_time():
-    time.sleep(random.randint(1, 2))
+    time.sleep(random.randint(1, 1))
 
 
 def configure_selenium():
@@ -26,25 +27,26 @@ def configure_selenium():
     )
     options.add_experimental_option("useAutomationExtension", False)
     options.add_argument("--window-size=1600, 1080")
+    options.add_argument("--headless")
 
-    service = Service(ChromeDriverManager().install())
+    service = ChromeService(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
 
 def scrape_company_info(driver, company_name, adresse):
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
-    time.sleep(1)
+    # Increase or get blocked after 1-2 min
+    # Try to see without the headless mode to see what's happening
+    # Maybe a captcha
+    time.sleep(2)
 
     try:
-        # Accept the cookies if the button is present
         cookie_button = driver.find_elements(By.XPATH, '//*[@id="L2AGLb"]')
         if cookie_button:
             cookie_button[0].click()
     except NoSuchElementException:
         pass
-
-    sleep_time()
 
     company_info = {
         "phone_number": extract_phone_number(driver),
@@ -60,11 +62,15 @@ def scrape_company_info(driver, company_name, adresse):
         "schedule": extract_schedule(driver, company_name),
     }
 
+    # Replace 'nan' with empty string
+    for key, value in company_info.items():
+        if pd.isna(value) or value == "nan":
+            company_info[key] = ""
+
     return company_info
 
 
 def extract_phone_number(driver):
-    # Extract the phone number
     phone = ""
     try:
         phone_element = driver.find_element(
@@ -73,45 +79,20 @@ def extract_phone_number(driver):
         phone = phone_element.text
     except NoSuchElementException:
         phone = ""
-
     return phone
 
 
-def extract_address(driver):
-    # Extract the address without relying on class names
-    address = ""
-    try:
-        # This XPATH finds the anchor element containing the text 'Adresse'
-        # Then gets the following sibling that contains the address text
-        address_element = driver.find_element(
-            By.XPATH, "//a[contains(text(), 'Adresse')]/following::span[2]"
-        )
-        address = address_element.text
-    except NoSuchElementException:
-        address = ""
-
-    return address
-
-
 def extract_website(driver):
-    # Extract the website URL
     website = ""
     try:
-        # This XPath looks for an 'a' element with a 'div' child that contains the text 'Site Web'
         website_element = driver.find_element(By.XPATH, '//a[contains(.,"Site Web")]')
         website = website_element.get_attribute("href")
     except NoSuchElementException:
         website = ""
-
     return website
 
 
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
-
-
 def extract_schedule(driver, company_name):
-    # Extract the schedule from the table
     dayOfTheWeek = [
         "lundi",
         "mardi",
@@ -124,49 +105,33 @@ def extract_schedule(driver, company_name):
     schedule = {}
 
     try:
-        # Find all tables in the page
         tables = driver.find_elements(By.TAG_NAME, "table")
-
-        # Iterate over each table
         for table in tables:
-            # Check if the table contains the days of the week in the first column
             day_column = table.find_elements(By.XPATH, ".//tbody/tr/td[1]")
-
-            # Check if the day_column has elements
             if day_column:
-                # Iterate over the days in the first column
                 for day_elem in day_column:
                     day = day_elem.get_attribute("textContent").strip().lower()
-
-                    # Check if the day is in the list of daysOfTheWeek
                     if day in dayOfTheWeek:
-                        # Find the corresponding hours in the second column
                         hours_td_list = table.find_elements(
                             By.XPATH,
                             ".//tbody/tr[td[1][text()='{}']]/td[2]".format(day),
                         )
-
-                        # Check if elements exist in the list before accessing them
                         if hours_td_list:
-                            # Iterate over the list of hours_td elements to get the text content for each one
                             for hours_td in hours_td_list:
                                 hours_text = hours_td.get_attribute(
                                     "textContent"
                                 ).strip()
-
                             schedule[day] = hours_text
                         else:
                             schedule[day] = ""
-
     except NoSuchElementException as e:
         print(f"Could not extract schedule for {company_name}: {e}")
-        schedule = ""
+        schedule = {}
 
     return schedule
 
 
 def extract_instagram(driver):
-    # Extract the Instagram URL
     instagram = ""
     try:
         instagram_element = driver.find_element(
@@ -179,10 +144,8 @@ def extract_instagram(driver):
 
 
 def extract_facebook(driver):
-    # Extract the Facebook URL
     facebook = ""
     try:
-        # Since the href attribute contains the full Facebook URL, we can directly get it
         facebook_element = driver.find_element(
             By.XPATH, "//a[contains(@href, 'https://www.facebook.com/')]"
         )
@@ -193,7 +156,6 @@ def extract_facebook(driver):
 
 
 def extract_twitter(driver):
-    # Extract the Twitter URL
     twitter = ""
     try:
         twitter_element = driver.find_element(
@@ -206,7 +168,6 @@ def extract_twitter(driver):
 
 
 def extract_linkedin(driver):
-    # Extract the LinkedIn URL
     linkedin = ""
     try:
         linkedin_element = driver.find_element(
@@ -219,7 +180,6 @@ def extract_linkedin(driver):
 
 
 def extract_youtube(driver):
-    # Extract the YouTube URL
     youtube = ""
     try:
         youtube_element = driver.find_element(
@@ -232,21 +192,17 @@ def extract_youtube(driver):
 
 
 def extract_email(driver):
-    # Extract the email through the url starting by mailto:
     email = ""
     try:
         email = driver.find_element(By.LINK_TEXT, "Email")
     except NoSuchElementException:
         email = ""
-
     return email
 
 
 def extract_reviews(driver):
-    # Extract the stars and the number of reviews
     reviews = {}
     try:
-        # Updated XPath expressions
         stars_elements = driver.find_elements(
             By.XPATH, "//span[contains(@aria-label, 'Note')]"
         )
@@ -254,7 +210,6 @@ def extract_reviews(driver):
             By.XPATH, "//a[contains(text(), 'avis')]"
         )
 
-        # Check if elements exist in the lists before accessing them
         if stars_elements:
             reviews["stars"] = stars_elements[0].get_attribute("aria-label").split()[2]
         else:
@@ -266,130 +221,83 @@ def extract_reviews(driver):
             reviews["number_of_reviews"] = ""
 
     except NoSuchElementException:
-        reviews = {}
+        reviews = {"stars": "", "number_of_reviews": ""}
 
     return reviews
 
 
-# def extract_reviews(driver):
-#     try:
-#         reviews = []
-#         list_review_button = driver.find_element(
-#             By.XPATH, "//span[contains(text(), 'avis')]"
-#         )
-#         list_review_button.click()
+def process_chunk(chunk, output_file, lock):
+    driver = configure_selenium()
+    try:
+        for _, row in chunk.iterrows():
+            search_name = row["company_name"]
+            adresse = row["city"]
 
-#         time.sleep(3)
+            try:
+                company_info = scrape_company_info(driver, search_name, adresse)
+                row.update(company_info)
 
-#         rows = driver.find_elements(By.CLASS_NAME, "gws-localreviews__google-review")
-#         for row in rows:
-#             try:
-#                 author = row.find_element(
-#                     By.XPATH,
-#                     ".//img[contains(@src, 'https://lh3.googleusercontent.com/')]",
-#                 )
-#                 author = author.get_attribute("alt")
-#                 stars = row.find_element(
-#                     By.XPATH, ".//*[contains(@aria-label, 'Note')]"
-#                 )
-#                 stars = stars.get_attribute("aria-label")
-#                 note = stars.split()[2]  # Assuming the format "Note: 4.5 out of 5"
+                # Replace 'nan' with empty string in the row
+                row = row.replace("nan", "", regex=True)
+                row = row.fillna("")
 
-#                 review_text = ""
-#                 try:
-#                     extended_review_button = row.find_elements(
-#                         By.XPATH, ".//a[@class='review-more-link']"
-#                     )
-#                     if extended_review_button:
-#                         extended_review_button[0].click()
+                with lock:
+                    with open(output_file, mode="a", encoding="utf-8", newline="") as f:
+                        writer = csv.DictWriter(f, fieldnames=row.index, delimiter=";")
+                        writer.writerow(row.to_dict())
 
-#                     time.sleep(1)  # Wait for the review to expand
-#                     review_text = row.find_element(
-#                         By.XPATH, ".//span[@data-expandable-section]"
-#                     ).text
-#                 except NoSuchElementException:
-#                     # Handle the case where the 'Plus' button is not present
-#                     review_text = row.find_element(
-#                         By.XPATH, ".//span[@data-expandable-section]"
-#                     )
-#                     review_text = (
-#                         review_text.text if review_text else "Review text not available"
-#                     )
-
-#                 reviews.append({"author": author, "text": review_text, "stars": note})
-#             except NoSuchElementException:
-#                 print("Problem finding review elements")
-#                 continue
-
-#     except NoSuchElementException:
-#         reviews = ""
-
-#     return reviews
+                print(f"Data updated for {search_name}")
+            except Exception as e:
+                print(f"Error while scraping {search_name}: {e}")
+    finally:
+        driver.quit()
 
 
-filename = "./final.csv"
-updated_filename = "./fichier_combine_updated.csv"
+def main():
+    input_file = "./final.csv"
+    output_file = "./fichier_combine_updated.csv"
+    chunk_size = 1000  # Adjust based on your needs and available memory
 
-file_exists = os.path.isfile(updated_filename)
-number_of_iterations = 0
-updated_companies_info = {}
+    # Create output file with header if it doesn't exist
+    if not os.path.exists(output_file):
+        df = pd.read_csv(input_file, nrows=0, delimiter=";")
+        df.to_csv(output_file, index=False, sep=";")
 
-# Load updated data before opening the CSV file
-if file_exists:
-    with open(updated_filename, mode="r", encoding="utf-8") as updated_file:
-        reader = csv.DictReader(updated_file, delimiter=";")
-        for row in reader:
-            updated_companies_info[row["company_name"]] = row
+    # Read already processed companies
+    processed_companies = set()
+    try:
+        df_processed = pd.read_csv(output_file, usecols=["company_name"], delimiter=";")
+        processed_companies = set(df_processed["company_name"])
+    except Exception as e:
+        print(f"Error reading processed companies: {e}")
 
-driver = configure_selenium()
+    # Use a Manager to create a shareable Lock
+    with Manager() as manager:
+        lock = manager.Lock()
 
-try:
-    with open(filename, mode="r", encoding="utf-8") as file:
-        reader = csv.DictReader(file, delimiter=";")
-        existing_fieldnames = reader.fieldnames.copy()
-        new_fieldnames = [
-            "phone_number", "website", "reviews", "schedule", "instagram", "facebook",
-            "twitter", "linkedin", "youtube", "email", "scraping_date",
-        ]
-        for field in new_fieldnames:
-            if field not in existing_fieldnames:
-                existing_fieldnames.append(field)
+        # Process file in chunks
+        with pd.read_csv(input_file, chunksize=chunk_size, delimiter=";") as reader:
+            for chunk in reader:
+                # Filter out already processed companies
+                chunk = chunk[~chunk["company_name"].isin(processed_companies)]
 
-        with open(updated_filename, mode="a+", encoding="utf-8", newline="") as updated_file:
-            updated_file.seek(0)
-            first_line = updated_file.readline()
-            if not first_line:
-                writer = csv.DictWriter(updated_file, fieldnames=existing_fieldnames, delimiter=";")
-                writer.writeheader()
-            else:
-                writer = csv.DictWriter(updated_file, fieldnames=existing_fieldnames, delimiter=";")
+                if not chunk.empty:
+                    # Create a process pool
+                    with multiprocessing.Pool() as pool:
+                        # Split the chunk into sub-chunks for each process
+                        num_processes = multiprocessing.cpu_count()
+                        sub_chunks = np.array_split(chunk, num_processes)
 
-            updated_file.seek(0, os.SEEK_END)
+                        # Start parallel processing
+                        pool.starmap(
+                            process_chunk,
+                            [
+                                (sub_chunk, output_file, lock)
+                                for sub_chunk in sub_chunks
+                            ],
+                        )
 
-            for line in reader:
-                search_name = line["company_name"]
-                adresse = line["city"]
 
-                company_info = updated_companies_info.get(search_name)
-                if company_info and "company_name" in company_info and company_info["company_name"].strip():
-                    continue
-
-                try:
-                    company_info = scrape_company_info(driver, search_name, adresse)
-                    line.update(company_info)
-                    writer.writerow(line)
-                    print(f"Data updated for {search_name}")
-                    number_of_iterations += 1
-                except KeyboardInterrupt:
-                    print("Stopped by the user. End of update.")
-                    print(f"Number of iterations: {number_of_iterations}")
-                    break
-                except Exception as e:
-                    print(f"Error while scraping {search_name}: {e}")
-except KeyboardInterrupt:
-    print("Interrupted by the user. End of update.")
-    print(f"Number of iterations: {number_of_iterations}")
-except Exception as e:
-    print(f"Global error: {e}")
-finally:
-    driver.quit()
+if __name__ == "__main__":
+    multiprocessing.freeze_support()  # Necessary for Windows
+    main()
