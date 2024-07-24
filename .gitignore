@@ -1,7 +1,3 @@
-/Chiffres-Cles/*.csv
-/Entreprises-Radiées/*.csv
-/Entreprises-crées/*.csv
-/Fichiers_FIN/*.csv
+*.csv
 /Fichiers_FIN/chromedriver-linux64
-/*.csv
 !template.csv
