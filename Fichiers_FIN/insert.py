@@ -3,7 +3,9 @@ import psycopg2
 import logging
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # DON'T FORGET TO CREATE THE INDEXES !!!
 
@@ -37,13 +39,15 @@ except Exception as e:
 cur = conn.cursor()
 
 # Batch update size (adjust as needed)
-batch_size = 100
+batch_size = 500
 
 try:
     logging.info("Starting batch updates...")
     for i in range(0, len(data), batch_size):
-        batch = data[i:i + batch_size]
-        logging.info(f"Processing batch {i // batch_size + 1} / {len(data) // batch_size + 1}")
+        batch = data[i : i + batch_size]
+        logging.info(
+            f"Processing batch {i // batch_size + 1} / {len(data) // batch_size + 1}"
+        )
 
         update_query = """
         UPDATE companies
