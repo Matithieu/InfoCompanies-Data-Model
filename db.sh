@@ -11,16 +11,23 @@ get_postgres_container_id() {
     docker ps --filter "ancestor=postgres" --format "{{.ID}}"
 }
 
-# Function to transfer the CSV file to the PostgreSQL database
+# Generic function to transfer a CSV file to the PostgreSQL database
 transfer_csv_to_database() {
-    local csv_file="./InfoCompanies-Data-Model/$CSV_FILE"
-    local container_csv_file="/csv/$CSV_FILE"
+    local table_name="$1"
+    local csv_file_path="$2"
+    local columns="$3"
+    local delimiter="$4"
+    local base_name
+    base_name=$(basename "$csv_file_path")
+    local container_csv_file="/tmp/$base_name"
 
     # Verify if the CSV file exists
-    if [ ! -f "$csv_file" ]; then
-        echo "The CSV file '$csv_file' doesn't exist."
+    if [ ! -f "$csv_file_path" ]; then
+        echo "The CSV file '$csv_file_path' doesn't exist."
         exit 1
     fi
+
+    sudo chmod +r "$csv_file_path"
 
     local postgres_container
     postgres_container=$(get_postgres_container_id)
@@ -29,42 +36,17 @@ transfer_csv_to_database() {
         exit 1
     fi
 
-    local columns
-    columns=$(head -1 "$csv_file" | tr ';' ',')
-
-    # Transfer the CSV file to the PostgreSQL database
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy companies($columns) FROM '$container_csv_file' DELIMITER ';' CSV HEADER;"
+    echo "Transferring the CSV file to the PostgreSQL database."
+    docker cp "$csv_file_path" "$postgres_container:$container_csv_file"
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy $table_name($columns) FROM '$container_csv_file' DELIMITER '$delimiter' CSV HEADER;"
 }
 
-# Function to transfer the city CSV file to the PostgreSQL database
-transfer_city_csv_to_database() {
-    local city_csv_file="$1"
-    local container_city_csv_file
-    container_city_csv_file="/csv/$(basename "$city_csv_file")"
-    sudo chmod +r "$city_csv_file"
-
-    if [ ! -f "$city_csv_file" ]; then
-        echo "The city CSV file '$city_csv_file' doesn't exist."
-        exit 1
-    fi
-
-    local postgres_container
-    postgres_container=$(get_postgres_container_id)
-    if [ -z "$postgres_container" ]; then
-        echo "No running PostgreSQL container found."
-        exit 1
-    fi
-
-    local columns
-    columns=name
-
-    echo "Transferring the city CSV file to the PostgreSQL database."
-    # Transfer the city CSV file to the PostgreSQL database
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy city($columns) FROM '$container_city_csv_file' DELIMITER ',' CSV HEADER;"
-}
-
-# Function to create indexes in the PostgreSQL database
+# Function to create indexes for a given table and columns
 create_indexes() {
+    local table_name="$1"
+    shift
+    local columns=("$@")
+
     local postgres_container
     postgres_container=$(get_postgres_container_id)
     if [ -z "$postgres_container" ]; then
@@ -72,45 +54,80 @@ create_indexes() {
         exit 1
     fi
 
-    # Indexes for the companies table
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_siren_number ON companies (siren_number);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_name ON companies (company_name);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_legal_form ON companies (legal_form);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_industry_sector ON companies (industry_sector);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_region ON companies (region);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_city ON companies (city);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_phone_number ON companies (phone_number);"
-
-    # Indexes for the company_seen table
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_user_id ON company_seen (user_id);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_company_ids_company_ids ON company_seen_company_ids (company_ids);"
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_company_seen_company_ids_company_seen_id ON company_seen_company_ids (company_seen_id);"
-
-    # Indexes for the city table
-    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_city_name ON city (name);"
+    for column in "${columns[@]}"; do
+        echo "Creating index idx_${table_name}_${column} on $table_name ($column)."
+        docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_${table_name}_${column} ON $table_name ($column);"
+    done
 }
 
 # Function to remove the error line from the CSV file
 remove_error_line() {
     local line_number="$1"
-    local csv_file="./InfoCompanies-Data-Model/$CSV_FILE"
-    # Delete the line from the CSV file
+    local csv_file="$2"
     sed -i "${line_number}d" "$csv_file"
 }
 
-# Main execution
+# Function to export unique values to a CSV file
+export_unique_values() {
+    local query="$1"
+    local base_name
+    base_name=$(basename "$2")
+    local output_csv="/tmp/$base_name"
+
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    # Ensure the /tmp directory exists and has the correct permissions
+    docker exec -u postgres -it "$postgres_container" mkdir -p /tmp
+
+    # Execute the query and export the results to the CSV file
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
+
+    # Ensure the destination directory on the host machine has the correct permissions
+    sudo chmod 777 "./InfoCompanies-Data-Model"
+
+    # Copy the CSV file from the container to the host machine
+    docker cp "$postgres_container:$output_csv" "./InfoCompanies-Data-Model/$(basename "$2")"
+}
+
+# Export all unique values at the start of the script
+export_all_unique_values() {
+    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
+    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
+    export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
+}
+
+# Main script
 case "$ACTION" in
 transfer_city_csv_to_database)
-    transfer_city_csv_to_database "./InfoCompanies-Data-Model/city.csv"
+    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
+    ;;
+transfer_industry_sector_csv_to_database)
+    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
+    ;;
+export_unique_industry_sector)
+    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
+    ;;
+export_unique_cities)
+    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
+    ;;
+export_unique_values)
+    query="$3"
+    output_csv="$4"
+    export_unique_values "$query" "$output_csv"
     ;;
 *)
     sudo chmod +r "./InfoCompanies-Data-Model/$CSV_FILE"
 
     # Backup the CSV file
-    #cp "./InfoCompanies-Data-Model/$CSV_FILE" "./InfoCompanies-Data-Model/$CSV_FILE.bak"
+    cp "./InfoCompanies-Data-Model/$CSV_FILE" "./InfoCompanies-Data-Model/$CSV_FILE.bak"
 
     # Transfer the CSV file to the PostgreSQL database
-    output=$(transfer_csv_to_database 2>&1)
+    output=$(transfer_csv_to_database "companies" "./InfoCompanies-Data-Model/$CSV_FILE" "$(head -1 "./InfoCompanies-Data-Model/$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
     # Verify if the transfer was successful
     if [ $? -ne 0 ]; then
@@ -118,13 +135,13 @@ transfer_city_csv_to_database)
         line_number=$(echo "$output" | grep -oE 'LINE [0-9]+' | grep -oE '[0-9]+')
 
         if [ -n "$line_number" ]; then
-            echo "Error at the line $line_number. Deleting the line."
+            echo "Error at line $line_number. Deleting the line."
 
             # Remove the error line from the CSV file
-            remove_error_line "$line_number"
+            remove_error_line "$line_number" "./InfoCompanies-Data-Model/$CSV_FILE"
 
             # Retry the transfer
-            output=$(transfer_csv_to_database 2>&1)
+            output=$(transfer_csv_to_database "companies" "./InfoCompanies-Data-Model/$CSV_FILE" "$(head -1 "./InfoCompanies-Data-Model/$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
             if [ $? -ne 0 ]; then
                 echo "Error during the transfer of the CSV file to the PostgreSQL database: $output"
@@ -142,17 +159,27 @@ transfer_city_csv_to_database)
 
     echo "Transfer of the CSV file to the PostgreSQL database successful."
 
-    # Create indexes
-    create_indexes
+    # Main execution
+    export_all_unique_values
 
-    # Transfer the city CSV file to the PostgreSQL database
-    transfer_city_csv_to_database "/home/mathieu/InfoCompanies/InfoCompanies-Data-Model/city.csv"
+    # Create indexes
+    create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number"
+    create_indexes "company_seen" "user_id"
+    create_indexes "company_seen_company_ids" "company_ids" "company_seen_id"
+    create_indexes "city" "name"
+    create_indexes "industry_sector" "name"
+    create_indexes "legal_form" "name"
+
+    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
+    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
+    transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
 
     # Check if the CSV file is the template
     if [ "$CSV_FILE" = "template.csv" ]; then
         echo "Skipping insertion as the CSV file is the template."
     else
         python3 ./InfoCompanies-Data-Model/Fichiers_FIN/insert.py
+        echo "Insertion done"
     fi
     ;;
 esac
