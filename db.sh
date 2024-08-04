@@ -178,8 +178,8 @@ export_unique_values)
     if [ "$CSV_FILE" = "template.csv" ]; then
         echo "Skipping insertion as the CSV file is the template."
     else
-        python3 ./InfoCompanies-Data-Model/Fichiers_FIN/insert.py
-        echo "Insertion done"
+        python3 ./InfoCompanies-Data-Model/Final-Sort/insert.py
+        echo "Insertion of the data into the database successful."
     fi
     ;;
 esac

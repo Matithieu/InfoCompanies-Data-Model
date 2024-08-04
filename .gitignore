@@ -1,4 +1,4 @@
 *.bak
 *.csv
-/Fichiers_FIN/chromedriver-linux64
+/Final-Sort/chromedriver-linux64
 !template.csv

@@ -254,7 +254,7 @@ def process_chunk(chunk, output_file, lock):
 
 
 def main():
-    input_file = "./final.csv"
+    input_file = "./renamedColumns.csv"
     output_file = "./fichier_combine_updated.csv"
     chunk_size = 1000  # Adjust based on your needs and available memory
 

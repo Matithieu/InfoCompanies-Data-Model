@@ -1,7 +1,10 @@
 import pandas as pd
 
+input_file = "./fichier_combine.csv"
+output_file = "fichier_renamed.csv"
+
 # Chargement du fichier CSV
-df = pd.read_csv("./InfoCompanies-Data-Model/fichier_combine.csv", delimiter=";")
+df = pd.read_csv(input_file, delimiter=";")
 
 # Dictionnaire de traduction des en-têtes
 translation_dict = {
@@ -89,4 +92,4 @@ translation_dict = {
 df = df.rename(columns=translation_dict)
 
 # Enregistrement du fichier CSV avec les nouveaux en-têtes
-df.to_csv("final.csv", index=False, sep=";")
+df.to_csv(output_file, index=False, sep=";")
