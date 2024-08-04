@@ -6,11 +6,11 @@ path_file_effectif = "./fichier_effectif.csv"
 input_file = "./fichier_renamed.csv"
 output_file = "final.csv"
 chunk_size = 100_000  # Adjust based on your memory capacity
+
 # Count the total size of the cleaned file
 with open(input_file, "r") as file:
     total_size = sum(1 for line in file) - 1  # Subtract 1 for the header
 print("Total size of the cleaned file:", total_size)
-
 
 # Initialize the array
 array_siren_number = np.zeros(total_size, dtype=int)
@@ -18,7 +18,15 @@ array_siren_number = np.zeros(total_size, dtype=int)
 
 def get_siren(chunk, count):
     if "siren_number" in chunk.columns:
-        siren_values = chunk["siren_number"].astype(int).to_numpy()
+        # Clean the data by removing non-numeric values and then converting to int
+        chunk = chunk.dropna(subset=["siren_number"])
+        chunk["siren_number"] = (
+            chunk["siren_number"]
+            .apply(pd.to_numeric, errors="coerce")
+            .dropna()
+            .astype(int)
+        )
+        siren_values = chunk["siren_number"].to_numpy()
 
         # Calculate the end index and ensure it does not exceed the array size
         end_index = count + len(siren_values)
