@@ -29,6 +29,7 @@ csv_files_to_delete=(
     "leaders_renamed.csv"
     "leaders_sorted.csv"
     "legal_form.csv"
+    "leaders_sorted.csv"
     #"merged_output.csv"
 )
 
