@@ -10,8 +10,6 @@ columns_to_keep = [
     "Numéro de Gestion",
     "Type",
     "Libellé Evènement",
-    "Greffe",
-    "date_greffe",
     "Nom d'usage",
     "Pseudonyme",
     "Dénomination",
@@ -21,7 +19,7 @@ columns_to_keep = [
 
 print(f"Chargement du fichier {path_of_file} en chunks...")
 
-chunk_size = 500000  # Adjust the chunk size based on your memory capacity
+chunk_size = 500_000  # Adjust the chunk size based on your memory capacity
 chunks = []
 for chunk in pd.read_csv(
     path_of_file,
