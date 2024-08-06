@@ -29,21 +29,20 @@ scripts=(
 
 # Liste des chemins vers les fichiers CSV à supprimer
 csv_files_to_delete=(
-    "city.csv"
-    "fichier_chiffres.csv"
     #"fichier_combine_updated.csv"
+    "fichier_chiffres.csv"
     "fichier_combine.csv"
     "fichier_immatriculees.csv"
     "fichier_radiees.csv"
     "fichier_renamed.csv"
     "fichier_effectif.csv"
     "renamedColumns.csv"
-    "industry_sector.csv"
     "leaders_renamed.csv"
     "leaders_sorted.csv"
-    "legal_form.csv"
+    #"industry_sector.csv"
+    #"city.csv"
+    #"legal_form.csv"
     "leaders_sorted.csv"
-    #"merged_output.csv"
 )
 
 # Fonction pour supprimer les fichiers CSV
