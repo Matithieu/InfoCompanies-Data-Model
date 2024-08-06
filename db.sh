@@ -120,7 +120,7 @@ split_and_transfer_csv() {
 # Main script
 case "$ACTION" in
 transfer_leaders_csv_to_database)
-    split_and_transfer_csv "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";" 1000000
+    split_and_transfer_csv "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";" 3000000
     ;;
 transfer_city_csv_to_database)
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
