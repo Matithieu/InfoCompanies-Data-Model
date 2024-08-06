@@ -30,7 +30,6 @@ for chunk in pd.read_csv(
     chunks.append(chunk)
 
 data = pd.concat(chunks, ignore_index=True)
-print("debug")
 
 data.to_csv("leaders_sorted.csv", sep=";", index=False)
 print("Sorted Leaders done !")
