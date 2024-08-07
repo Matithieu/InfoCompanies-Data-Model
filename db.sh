@@ -101,26 +101,11 @@ export_all_unique_values() {
     export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
 }
 
-# Function to split and transfer CSV files in chunks
-split_and_transfer_csv() {
-    local table_name="$1"
-    local csv_file_path="$2"
-    local columns="$3"
-    local delimiter="$4"
-    local chunk_size="$5"
-
-    split -l "$chunk_size" "$csv_file_path" chunk_
-
-    for chunk in chunk_*; do
-        transfer_csv_to_database "$table_name" "$chunk" "$columns" "$delimiter"
-        rm "$chunk"
-    done
-}
-
 # Main script
 case "$ACTION" in
 transfer_leaders_csv_to_database)
-    split_and_transfer_csv "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";" 3000000
+    # ./InfoCompanies-Data-Model/db.sh "./InfoCompanies-Data-Model/leaders_renamed.csv" transfer_leaders_csv_to_database
+    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
     ;;
 transfer_city_csv_to_database)
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
@@ -194,7 +179,7 @@ export_unique_values)
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
     transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
 
-    split_and_transfer_csv "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";" 1000000
+    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
 
     # Check if the CSV file is the template
     if [ "$CSV_FILE" = "template.csv" ]; then
