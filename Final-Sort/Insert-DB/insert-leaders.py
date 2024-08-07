@@ -7,9 +7,10 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Do not load the CSV, it will crash
 # Read the CSV file
 data = []
-csv_path = "./InfoCompanies-Data-Model/leaders_renamed.csv"
+csv_path = ""
 
 logging.info("Reading the Leaders CSV file...")
 with open(csv_path, newline="", encoding="utf-8") as csvfile:
@@ -24,7 +25,7 @@ try:
         dbname="postgres",
         user="postgres",
         password="root",
-        host="localhost",
+        host="matithieu.com",
         port="5432",
     )
     logging.info("Database connection established.")
