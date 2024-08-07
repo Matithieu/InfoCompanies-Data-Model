@@ -25,6 +25,8 @@ scripts=(
     "Effectif/merge-effectif.py"
     "Leaders/clean-leaders.py"
     "Leaders/rename-leaders.py"
+    "Final-Sort/cleaner-final.py"
+    "Final-Sort/cleaner-leaders.py"
 )
 
 # Liste des chemins vers les fichiers CSV à supprimer
