@@ -4,7 +4,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 import random
 import multiprocessing
@@ -37,12 +39,26 @@ def configure_selenium():
     return driver
 
 
+def is_captcha_page(driver):
+    try:
+        # Check if CAPTCHA iframe is present
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]'))
+        )
+        print("CAPTCHA detected.")
+        return True
+    except TimeoutException:
+        return False
+
+
 def scrape_company_info(driver, company_name, adresse):
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
-    # Increase or get blocked after 1-2 min
-    # Try to see without the headless mode to see what's happening
-    # Maybe a captcha
     time.sleep(2)
+
+    if is_captcha_page(driver):
+        time.sleep(20)  # Wait 20 seconds as instructed and stop execution
+        driver.quit()
+        raise Exception("CAPTCHA encountered, stopping the script.")
 
     try:
         cookie_button = driver.find_elements(By.XPATH, '//*[@id="L2AGLb"]')
@@ -64,6 +80,13 @@ def scrape_company_info(driver, company_name, adresse):
         "reviews": extract_reviews(driver),
         "schedule": extract_schedule(driver, company_name),
     }
+
+    # Replace 'nan' with empty string
+    for key, value in company_info.items():
+        if pd.isna(value) or value == "nan":
+            company_info[key] = ""
+
+    return company_info
 
     # Replace 'nan' with empty string
     for key, value in company_info.items():
@@ -269,6 +292,7 @@ def process_chunk(chunk, output_file, lock):
                 print(f"Data updated for {search_name}")
             except Exception as e:
                 print(f"Error while scraping {search_name}: {e}")
+                break  # Exit if CAPTCHA is encountered
     finally:
         driver.quit()
 
@@ -305,7 +329,6 @@ def main():
                     # Create a process pool
                     with multiprocessing.Pool() as pool:
                         # Split the chunk into sub-chunks for each process
-                        # num_processes = multiprocessing.cpu_count()
                         num_processes = multiprocessing.cpu_count()
                         sub_chunks = np.array_split(chunk, num_processes)
 
