@@ -27,9 +27,12 @@ def configure_selenium():
     )
     options.add_experimental_option("useAutomationExtension", False)
     options.add_argument("--window-size=1600, 1080")
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
 
-    service = ChromeService(ChromeDriverManager().install())
+    # https://googlechromelabs.github.io/chrome-for-testing/
+    service = ChromeService(
+        executable_path="./Parsing/chromedriver-linux64/chromedriver"
+    )
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
@@ -113,19 +116,21 @@ def extract_schedule(driver, company_name):
                     day = day_elem.get_attribute("textContent").strip().lower()
                     if day in dayOfTheWeek:
                         hours_td_list = table.find_elements(
-                            By.XPATH,
-                            ".//tbody/tr[td[1][text()='{}']]/td[2]".format(day),
+                            By.XPATH, f".//tbody/tr[td[1][text()='{day}']]/td[2]"
                         )
-                        if hours_td_list:
+                        if hours_td_list and len(hours_td_list) > 0:
                             for hours_td in hours_td_list:
                                 hours_text = hours_td.get_attribute(
                                     "textContent"
                                 ).strip()
-                            schedule[day] = hours_text
+                                schedule[day] = hours_text
                         else:
                             schedule[day] = ""
     except NoSuchElementException as e:
         print(f"Could not extract schedule for {company_name}: {e}")
+        schedule = {}
+    except IndexError as e:
+        print(f"IndexError while extracting schedule for {company_name}: {e}")
         schedule = {}
 
     return schedule
@@ -210,17 +215,32 @@ def extract_reviews(driver):
             By.XPATH, "//a[contains(text(), 'avis')]"
         )
 
-        if stars_elements:
-            reviews["stars"] = stars_elements[0].get_attribute("aria-label").split()[2]
+        if stars_elements and len(stars_elements) > 0:
+            # Safely split the aria-label and ensure there are enough parts
+            aria_label = stars_elements[0].get_attribute("aria-label")
+            parts = aria_label.split()
+            if len(parts) >= 3:  # Ensure there are at least 3 parts in the split list
+                reviews["stars"] = parts[2]  # The 3rd element should be the star rating
+            else:
+                reviews["stars"] = ""
         else:
             reviews["stars"] = ""
 
-        if number_of_reviews_elements:
-            reviews["number_of_reviews"] = number_of_reviews_elements[0].text.split()[0]
+        if number_of_reviews_elements and len(number_of_reviews_elements) > 0:
+            # Extract the number of reviews safely
+            number_of_reviews_text = number_of_reviews_elements[0].text.split()
+            if len(number_of_reviews_text) > 0:
+                reviews["number_of_reviews"] = number_of_reviews_text[0]
+            else:
+                reviews["number_of_reviews"] = ""
         else:
             reviews["number_of_reviews"] = ""
 
     except NoSuchElementException:
+        reviews = {"stars": "", "number_of_reviews": ""}
+
+    except IndexError as e:
+        print(f"IndexError while extracting reviews: {e}")
         reviews = {"stars": "", "number_of_reviews": ""}
 
     return reviews
@@ -254,7 +274,7 @@ def process_chunk(chunk, output_file, lock):
 
 
 def main():
-    input_file = "./renamedColumns.csv"
+    input_file = "./final.csv"
     output_file = "./fichier_combine_updated.csv"
     chunk_size = 1000  # Adjust based on your needs and available memory
 
@@ -285,6 +305,7 @@ def main():
                     # Create a process pool
                     with multiprocessing.Pool() as pool:
                         # Split the chunk into sub-chunks for each process
+                        # num_processes = multiprocessing.cpu_count()
                         num_processes = multiprocessing.cpu_count()
                         sub_chunks = np.array_split(chunk, num_processes)
 
