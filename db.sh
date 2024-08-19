@@ -11,6 +11,19 @@ get_postgres_container_id() {
     docker ps --filter "ancestor=postgres" --format "{{.ID}}"
 }
 
+# Function to enable the pg_trgm extension
+enable_pg_trgm_extension() {
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    echo "Enabling pg_trgm extension in the PostgreSQL database."
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+}
+
 # Generic function to transfer a CSV file to the PostgreSQL database
 transfer_csv_to_database() {
     local table_name="$1"
@@ -60,13 +73,31 @@ create_indexes() {
     done
 }
 
+# Function to create trigram indexes for text columns
+create_trigram_indexes() {
+    local table_name="$1"
+    shift
+    local columns=("$@")
+
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    for column in "${columns[@]}"; do
+        echo "Creating trigram index idx_${table_name}_${column}_trgm on $table_name ($column)."
+        docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS idx_${table_name}_${column}_trgm ON $table_name USING gin (LOWER($column) gin_trgm_ops);"
+    done
+}
+
 # Function to create composite indexes for a given table and set of columns
 create_composite_index() {
     local table_name="$1"
     shift
     local columns=("$@")
 
-    # Check if there are at least two columns to create a composite index
     if [ ${#columns[@]} -lt 2 ]; then
         echo "At least two columns are required to create a composite index."
         exit 1
@@ -82,7 +113,6 @@ create_composite_index() {
         exit 1
     fi
 
-    # Join the columns array into a string for the SQL command
     local columns_string
     columns_string=$(
         IFS=','
@@ -114,16 +144,10 @@ export_unique_values() {
         exit 1
     fi
 
-    # Ensure the /tmp directory exists and has the correct permissions
     docker exec -u postgres -it "$postgres_container" mkdir -p /tmp
-
-    # Execute the query and export the results to the CSV file
     docker exec -u postgres -it "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
 
-    # Ensure the destination directory on the host machine has the correct permissions
     sudo chmod 777 "./InfoCompanies-Data-Model"
-
-    # Copy the CSV file from the container to the host machine
     docker cp "$postgres_container:$output_csv" "./InfoCompanies-Data-Model/$(basename "$2")"
 }
 
@@ -137,7 +161,6 @@ export_all_unique_values() {
 # Main script
 case "$ACTION" in
 transfer_leaders_csv_to_database)
-    # ./InfoCompanies-Data-Model/db.sh "./InfoCompanies-Data-Model/leaders_renamed.csv" transfer_leaders_csv_to_database
     transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
     ;;
 transfer_city_csv_to_database)
@@ -159,44 +182,34 @@ export_unique_values)
     ;;
 *)
     sudo chmod +r "./InfoCompanies-Data-Model/$CSV_FILE"
-
-    # Backup the CSV file
     cp "./InfoCompanies-Data-Model/$CSV_FILE" "./InfoCompanies-Data-Model/$CSV_FILE.bak"
 
-    # Transfer the CSV file to the PostgreSQL database
     output=$(transfer_csv_to_database "companies" "./InfoCompanies-Data-Model/$CSV_FILE" "$(head -1 "./InfoCompanies-Data-Model/$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
-    # Verify if the transfer was successful
     if [ $? -ne 0 ]; then
-        # Extract the line number from the error message
         line_number=$(echo "$output" | grep -oE 'LINE [0-9]+' | grep -oE '[0-9]+')
 
         if [ -n "$line_number" ]; then
             echo "Error at line $line_number. Deleting the line."
-
-            # Remove the error line from the CSV file
             remove_error_line "$line_number" "./InfoCompanies-Data-Model/$CSV_FILE"
-
-            # Retry the transfer
             output=$(transfer_csv_to_database "companies" "./InfoCompanies-Data-Model/$CSV_FILE" "$(head -1 "./InfoCompanies-Data-Model/$CSV_FILE" | tr ';' ',')" ";" 2>&1)
-
             if [ $? -ne 0 ]; then
-                echo "Error during the transfer of the CSV file to the PostgreSQL database: $output"
-                # Restore the backup
+                echo "Error during the transfer: $output"
                 mv "./InfoCompanies-Data-Model/$CSV_FILE.bak" "./InfoCompanies-Data-Model/$CSV_FILE"
                 exit 1
             fi
         else
-            echo "Error during the transfer of the CSV file to the PostgreSQL database: $output"
-            # Restore the backup
+            echo "Error during the transfer: $output"
             mv "./InfoCompanies-Data-Model/$CSV_FILE.bak" "./InfoCompanies-Data-Model/$CSV_FILE"
             exit 1
         fi
     fi
 
-    echo "Transfer of the CSV file to the PostgreSQL database successful."
+    echo "Transfer successful."
 
-    # Main execution
+    # Enable pg_trgm extension
+    enable_pg_trgm_extension
+
     export_all_unique_values
 
     # Create indexes
@@ -208,31 +221,27 @@ export_unique_values)
     create_indexes "legal_form" "name"
     create_indexes "leader" "siren" "company_name" "first_name" "last_name"
 
+    create_composite_index "companies" "region" "city" "industrySector" "legalForm"
     create_composite_index "companies" "region" "city" "industrySector"
     create_composite_index "companies" "region" "city" "legalForm"
+    create_composite_index "companies" "region" "city"
     create_composite_index "companies" "region" "industrySector"
     create_composite_index "companies" "region" "legalForm"
+
+    create_composite_index "companies" "city" "industrySector" "legalForm"
     create_composite_index "companies" "city" "industrySector"
     create_composite_index "companies" "city" "legalForm"
 
-    create_composite_index "companies" "region" "city" "industrySector" "legalForm"
     create_composite_index "companies" "region" "industrySector" "legalForm"
-    create_composite_index "companies" "city" "industrySector" "legalForm"
-    create_composite_index "companies" "region" "city" "company_name"
     create_composite_index "companies" "industrySector" "legalForm"
 
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
     transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
 
-    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
+    create_trigram_indexes "companies" "company_name"
 
-    # Check if the CSV file is the template
-    if [ "$CSV_FILE" = "template.csv" ]; then
-        echo "Skipping insertion as the CSV file is the template."
-    else
-        python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
-        echo "Insertion of the data into the database successful."
-    fi
+    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
+    echo "Data insertion into the database successful."
     ;;
 esac
