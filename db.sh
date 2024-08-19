@@ -60,6 +60,39 @@ create_indexes() {
     done
 }
 
+# Function to create composite indexes for a given table and set of columns
+create_composite_index() {
+    local table_name="$1"
+    shift
+    local columns=("$@")
+
+    # Check if there are at least two columns to create a composite index
+    if [ ${#columns[@]} -lt 2 ]; then
+        echo "At least two columns are required to create a composite index."
+        exit 1
+    fi
+
+    local index_name
+    index_name="idx_${table_name}_$(echo "${columns[@]}" | tr ' ' '_')"
+
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    # Join the columns array into a string for the SQL command
+    local columns_string
+    columns_string=$(
+        IFS=','
+        echo "${columns[*]}"
+    )
+
+    echo "Creating composite index $index_name on $table_name ($columns_string)."
+    docker exec -u postgres -it "$postgres_container" psql -d postgres -c "CREATE INDEX IF NOT EXISTS $index_name ON $table_name ($columns_string);"
+}
+
 # Function to remove the error line from the CSV file
 remove_error_line() {
     local line_number="$1"
@@ -174,6 +207,19 @@ export_unique_values)
     create_indexes "industry_sector" "name"
     create_indexes "legal_form" "name"
     create_indexes "leader" "siren" "company_name" "first_name" "last_name"
+
+    create_composite_index "companies" "region" "city" "industrySector"
+    create_composite_index "companies" "region" "city" "legalForm"
+    create_composite_index "companies" "region" "industrySector"
+    create_composite_index "companies" "region" "legalForm"
+    create_composite_index "companies" "city" "industrySector"
+    create_composite_index "companies" "city" "legalForm"
+
+    create_composite_index "companies" "region" "city" "industrySector" "legalForm"
+    create_composite_index "companies" "region" "industrySector" "legalForm"
+    create_composite_index "companies" "city" "industrySector" "legalForm"
+    create_composite_index "companies" "region" "city" "company_name"
+    create_composite_index "companies" "industrySector" "legalForm"
 
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
