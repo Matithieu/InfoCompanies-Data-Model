@@ -207,6 +207,8 @@ export_unique_values)
 
     echo "Transfer successful."
 
+    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
+
     # Enable pg_trgm extension
     enable_pg_trgm_extension
 
@@ -241,7 +243,6 @@ export_unique_values)
 
     create_trigram_indexes "companies" "company_name"
 
-    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
     echo "Data insertion into the database successful."
     ;;
 esac
