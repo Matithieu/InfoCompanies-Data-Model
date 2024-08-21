@@ -207,8 +207,6 @@ export_unique_values)
 
     echo "Transfer successful."
 
-    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
-
     # Enable pg_trgm extension
     enable_pg_trgm_extension
 
@@ -242,6 +240,8 @@ export_unique_values)
     transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
 
     create_trigram_indexes "companies" "company_name"
+
+    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
 
     echo "Data insertion into the database successful."
     ;;
