@@ -160,6 +160,7 @@ export_all_unique_values() {
 
 # Main script
 case "$ACTION" in
+# ./InfoCompanies-Data-Model/db.sh "InfoCompanies-Data-Model/leaders_renamed.csv" transfer_leaders_csv_to_database
 transfer_leaders_csv_to_database)
     transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
     ;;
@@ -206,6 +207,8 @@ export_unique_values)
     fi
 
     echo "Transfer successful."
+
+    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
 
     # Enable pg_trgm extension
     enable_pg_trgm_extension
