@@ -19,22 +19,38 @@ def sleep_time():
     time.sleep(random.randint(1, 1))
 
 
+# List of user agents to rotate
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:85.0) Gecko/20100101 Firefox/85.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-A505FN) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.93 Mobile Safari/537.36",
+]
+
+
 def configure_selenium():
     options = webdriver.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
-    options.add_experimental_option(
-        "excludeSwitches", ["enable-logging", "enable-automation"]
-    )
+    options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
-    options.add_argument("--window-size=1600, 1080")
-    # options.add_argument("--headless")
+    options.add_argument("--disable-blink-features=AutomationControlled")  # Anti-
+    options.add_argument('--disable-popup-blocking')
+    options.add_argument('--start-maximized')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    
+    # Randomly select a user agent from the list
+    user_agent = random.choice(user_agents)
+    options.add_argument(f"user-agent={user_agent}")
 
-    # https://googlechromelabs.github.io/chrome-for-testing/
-    service = ChromeService(
-        executable_path="./Parsing/chromedriver-linux64/chromedriver"
-    )
+    # set user agent using execute_cpd_cmd
+    driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": user_agent})
+
+    # Initialize the Chrome driver
+    service = ChromeService(executable_path="./Parsing/chromedriver-linux64/chromedriver")
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
@@ -52,6 +68,9 @@ def is_captcha_page(driver):
 
 
 def scrape_company_info(driver, company_name, adresse):
+    # Change the property value of the navigator for webdriver to undefined
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
+
     driver.get(f"https://www.google.com/search?q={company_name} {adresse}")
     time.sleep(2)
 
