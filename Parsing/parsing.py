@@ -1,9 +1,8 @@
 import csv
 import os
-from selenium import webdriver
+import undetected_chromedriver as uc
+
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -16,26 +15,13 @@ import numpy as np
 
 
 def sleep_time():
-    time.sleep(random.randint(1, 1))
+    time.sleep(random.randint(1, 2))
 
 
 def configure_selenium():
-    options = webdriver.ChromeOptions()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
-    options.add_experimental_option(
-        "excludeSwitches", ["enable-logging", "enable-automation"]
-    )
-    options.add_experimental_option("useAutomationExtension", False)
-    options.add_argument("--window-size=1600, 1080")
-    # options.add_argument("--headless")
-
     # https://googlechromelabs.github.io/chrome-for-testing/
-    service = ChromeService(
-        executable_path="./Parsing/chromedriver-linux64/chromedriver"
-    )
-    driver = webdriver.Chrome(service=service, options=options)
+    path = "./Parsing/chromedriver-linux64/chromedriver"
+    driver = uc.Chrome(headless=True, use_subprocess=True, driver_executable_path=path)
     return driver
 
 
