@@ -219,9 +219,12 @@ export_unique_values)
     create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number"
     create_indexes "company_seen" "user_id"
     create_indexes "company_seen_company_ids" "company_ids" "company_seen_id"
+
+    # Autocomplete indexes
     create_indexes "city" "name"
     create_indexes "industry_sector" "name"
     create_indexes "legal_form" "name"
+
     create_indexes "leader" "siren" "company_name" "first_name" "last_name"
 
     create_composite_index "companies" "region" "city" "industry_sector" "legal_form"
