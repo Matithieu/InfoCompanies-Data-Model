@@ -216,7 +216,7 @@ export_unique_values)
     export_all_unique_values
 
     # Create indexes
-    create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number"
+    create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
     create_indexes "company_seen" "user_id"
     create_indexes "company_seen_company_ids" "company_ids" "company_seen_id"
 
