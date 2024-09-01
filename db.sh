@@ -170,6 +170,10 @@ transfer_city_csv_to_database)
 transfer_industry_sector_csv_to_database)
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
     ;;
+# ./InfoCompanies-Data-Model/db.sh "InfoCompanies-Data-Model/final.csv" create_companies_indexes
+create_companies_indexes)
+    create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
+    ;;
 export_unique_industry_sector)
     export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
     ;;
