@@ -245,6 +245,8 @@ export_unique_values)
     create_composite_index "companies" "region" "industry_sector" "legal_form"
     create_composite_index "companies" "industry_sector" "legal_form"
 
+    create_composite_index "companies" "industry_sector" "number_of_employee"
+
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
     transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
