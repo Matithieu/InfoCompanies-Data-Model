@@ -12,6 +12,7 @@ import multiprocessing
 from multiprocessing import Manager
 import pandas as pd
 import numpy as np
+import re
 
 
 def sleep_time():
@@ -74,13 +75,6 @@ def scrape_company_info(driver, company_name, adresse):
 
     return company_info
 
-    # Replace 'nan' with empty string
-    for key, value in company_info.items():
-        if pd.isna(value) or value == "nan":
-            company_info[key] = ""
-
-    return company_info
-
 
 def extract_phone_number(driver):
     phone = ""
@@ -105,7 +99,7 @@ def extract_website(driver):
 
 
 def extract_schedule(driver, company_name):
-    dayOfTheWeek = [
+    day_of_the_week = [
         "lundi",
         "mardi",
         "mercredi",
@@ -116,23 +110,29 @@ def extract_schedule(driver, company_name):
     ]
     schedule = {}
 
+    # Regular expression to match valid time ranges, e.g., "09:00–12:00" or "Fermé"
+    valid_hours_pattern = re.compile(r"^(\d{2}:\d{2}–\d{2}:\d{2}|Fermé)$")
+
     try:
         tables = driver.find_elements(By.TAG_NAME, "table")
         for table in tables:
-            day_column = table.find_elements(By.XPATH, ".//tbody/tr/td[1]")
-            if day_column:
-                for day_elem in day_column:
+            day_elements = table.find_elements(By.XPATH, ".//tbody/tr/td[1]")
+            if day_elements:
+                for day_elem in day_elements:
                     day = day_elem.get_attribute("textContent").strip().lower()
-                    if day in dayOfTheWeek:
-                        hours_td_list = table.find_elements(
+                    if day in day_of_the_week:
+                        hours_elements = table.find_elements(
                             By.XPATH, f".//tbody/tr[td[1][text()='{day}']]/td[2]"
                         )
-                        if hours_td_list and len(hours_td_list) > 0:
-                            for hours_td in hours_td_list:
-                                hours_text = hours_td.get_attribute(
-                                    "textContent"
-                                ).strip()
+                        if hours_elements:
+                            hours_text = (
+                                hours_elements[0].get_attribute("textContent").strip()
+                            )
+                            # Validate the extracted hours text using the pattern
+                            if valid_hours_pattern.match(hours_text):
                                 schedule[day] = hours_text
+                            else:
+                                schedule[day] = ""
                         else:
                             schedule[day] = ""
     except NoSuchElementException as e:
@@ -224,12 +224,24 @@ def extract_reviews(driver):
             By.XPATH, "//a[contains(text(), 'avis')]"
         )
 
+        # Regular expression to extract only digits, commas, and dots for stars
+        valid_star_pattern = re.compile(r"^\d+[.,]?\d*$")
+        # Regular expression to extract only digits for the number of reviews
+        valid_number_pattern = re.compile(r"^\d+$")
+
         if stars_elements and len(stars_elements) > 0:
             # Safely split the aria-label and ensure there are enough parts
             aria_label = stars_elements[0].get_attribute("aria-label")
             parts = aria_label.split()
             if len(parts) >= 3:  # Ensure there are at least 3 parts in the split list
-                reviews["stars"] = parts[2]  # The 3rd element should be the star rating
+                stars_value = parts[2]  # The 3rd element should be the star rating
+                # Validate if the extracted value matches the star pattern
+                if valid_star_pattern.match(stars_value):
+                    reviews["stars"] = stars_value.replace(
+                        ",", "."
+                    )  # Normalize to a dot for consistency
+                else:
+                    reviews["stars"] = ""
             else:
                 reviews["stars"] = ""
         else:
@@ -239,7 +251,12 @@ def extract_reviews(driver):
             # Extract the number of reviews safely
             number_of_reviews_text = number_of_reviews_elements[0].text.split()
             if len(number_of_reviews_text) > 0:
-                reviews["number_of_reviews"] = number_of_reviews_text[0]
+                reviews_value = number_of_reviews_text[0]
+                # Validate if the extracted value is numeric
+                if valid_number_pattern.match(reviews_value):
+                    reviews["number_of_reviews"] = reviews_value
+                else:
+                    reviews["number_of_reviews"] = ""
             else:
                 reviews["number_of_reviews"] = ""
         else:

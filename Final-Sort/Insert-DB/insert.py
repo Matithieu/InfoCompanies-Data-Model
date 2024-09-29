@@ -1,6 +1,7 @@
 import csv
 import psycopg2
 import logging
+import subprocess
 
 # Setup logging
 logging.basicConfig(
@@ -8,6 +9,22 @@ logging.basicConfig(
 )
 
 # DON'T FORGET TO CREATE THE INDEXES !!!
+
+
+# Path to the external Python file
+external_script_path = "./InfoCompanies-Data-Model/Final-Sort/Rename/remove-quote.py"
+
+# Execute the clear quotes script
+try:
+    logging.info(f"Executing external script: {external_script_path}")
+    result = subprocess.run(
+        ["python3", external_script_path], capture_output=True, text=True, check=True
+    )
+    logging.info(f"External script output: {result.stdout}")
+except subprocess.CalledProcessError as e:
+    logging.error(f"Error executing external script: {e.stderr}")
+    exit(1)
+
 
 # Read the CSV file
 data = []
@@ -55,7 +72,10 @@ try:
             phone_number = COALESCE(NULLIF(%(phone_number)s, ''), phone_number),
             website = COALESCE(NULLIF(%(website)s, ''), website),
             reviews = CASE WHEN %(reviews)s = '' THEN reviews ELSE %(reviews)s END,
-            schedule = COALESCE(NULLIF(%(schedule)s, ''), schedule),
+            schedule = CASE 
+                        WHEN %(schedule)s = '' THEN schedule 
+                        ELSE %(schedule)s::jsonb 
+                    END,
             instagram = COALESCE(NULLIF(%(instagram)s, ''), instagram),
             facebook = COALESCE(NULLIF(%(facebook)s, ''), facebook),
             twitter = COALESCE(NULLIF(%(twitter)s, ''), twitter),
