@@ -71,7 +71,7 @@ done
 
 # Function to get the PostgreSQL container ID
 get_postgres_container_id() {
-    docker ps --filter "ancestor=postgres" --format "{{.ID}}"
+    docker ps --filter "ancestor=postgres:16.4" --format "{{.ID}}"
 }
 
 # Function to enable the pg_trgm extension
