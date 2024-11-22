@@ -26,6 +26,7 @@ usage() {
     echo "  export_unique_industry_sector    Export unique industry sectors"
     echo "  export_unique_cities             Export unique cities"
     echo "  export_unique_values             Export unique values (requires query and output file)"
+    echo "  insert_data                      Insert big data into the database"
     echo
     echo "Example:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
@@ -255,6 +256,31 @@ export_all_unique_values() {
     export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
 }
 
+# Function to insert data into the database (big data)
+insert_data() {
+    echo "Inserting data into the database."
+
+    # List of scripts to run
+    scripts=(
+        #"./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/fix-json.py"
+        "./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/create-and-update-table.py"
+    )
+
+    # Run each script
+    for script in "${scripts[@]}"; do
+        echo "Running script: $script"
+        python3 "$script"
+        if [ $? -ne 0 ]; then
+            echo "Error running script: $script"
+            deactivate
+            exit 1
+        fi
+    done
+
+    echo "Data insertion into the database successful."
+    deactivate
+}
+
 # Main script
 if [ -z "$ACTION" ]; then
     # No action specified, run default actions
@@ -337,13 +363,17 @@ if [ -z "$ACTION" ]; then
     create_trigram_indexes "companies" "company_name"
 
     # Run the Python script
-    python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
+    insert_data
+    #python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
 
     echo "Data insertion into the database successful."
 
 else
     # Action specified, handle accordingly
     case "$ACTION" in
+    insert_data)
+        insert_data
+        ;;
     backup_database)
         backup_database "$BACKUP_FORMAT"
         ;;
