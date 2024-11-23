@@ -1,6 +1,8 @@
 import psycopg2
 import os
 import subprocess
+import platform
+import sys
 
 # Database configuration (replace with your actual values)
 DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -157,15 +159,28 @@ def update_main_table(cursor, main_table_name, temp_table_name):
     print(f"`{main_table_name}` updated with data from `{temp_table_name}`.")
 
 
+# Depending on the OS, the sed command may need to be adjusted
+def remove_line_with_sed(line_number, file_path):
+    system = platform.system()
+    if system == "Darwin":
+        # macOS
+        subprocess.run(["sed", "-i", "", f"{line_number}d", file_path], check=True)
+    else:
+        # Linux (assumes GNU sed)
+        subprocess.run(["sed", "-i", f"{line_number}d", file_path], check=True)
+
+
 def main():
     # Table names
     main_table_name = "companies"  # Use exact table name as per your schema
     temp_table_name = "temp_companies"  # Temporary table name
 
     # Step 0: Remove the specified lines from the CSV file
-    lines_to_remove = [4204, 202711, 202738, 202767]
-    for line in lines_to_remove:
-        subprocess.run(["sed", "-i", f"{line}d", CSV_FILE_PATH])
+
+    # lines_to_remove = [4204, 202711, 202738, 202767]
+    # print("Removing specified lines from the CSV file...")
+    # for line_number in lines_to_remove:
+    #     remove_line_with_sed(line_number, CSV_FILE_PATH)
 
     # Connect to the database
     conn = connect_to_db()
@@ -187,6 +202,7 @@ def main():
                 print("Database update process completed successfully!")
     except Exception as e:
         print(f"An error occurred: {e}")
+        sys.exit(1)  # Exit if error occurs
     finally:
         conn.close()
 
