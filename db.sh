@@ -27,10 +27,12 @@ usage() {
     echo "  export_unique_cities             Export unique cities"
     echo "  export_unique_values             Export unique values (requires query and output file)"
     echo "  insert_data                      Insert big data into the database"
+    echo "  export_e2e_data_sql              Export E2E data as SQL dumps"
     echo
     echo "Example:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_data_sql"
     echo
 }
 
@@ -229,8 +231,9 @@ backup_database() {
     if [ "$backup_format" == "sql" ]; then
         echo "Backing up the PostgreSQL database in SQL format."
         docker exec -u postgres -i "$postgres_container" pg_dump -U postgres -F c -f /tmp/db_backup.dump postgres
-        docker cp "$postgres_container:/tmp/db_backup.dump" "./InfoCompanies-Data-Model/db_backup.dump"
-        echo "Backup saved to ./InfoCompanies-Data-Model/db_backup.dump"
+        echo "Exporting the backup to ./InfoCompanies-Data-Model/backup/db_backup.dump"
+        docker cp "$postgres_container:/tmp/db_backup.dump" "./InfoCompanies-Data-Model/backup/db_backup.dump"
+        echo "Backup saved!"
     elif [ "$backup_format" == "csv" ]; then
         echo "Backing up the PostgreSQL database in CSV format with semicolon delimiters."
 
@@ -279,6 +282,67 @@ insert_data() {
 
     echo "Data insertion into the database successful."
     deactivate
+}
+
+# When exporting E2E data as SQL dumps, make sure to create the output directory and set the correct permissions:
+# sudo chown -R $(whoami):staff ./e2e_data_sql
+#
+# Function to export E2E data as SQL dumps
+export_e2e_data_as_sql() {
+    local max_size_mb=15
+    local max_size_bytes=$((max_size_mb * 1024 * 1024))
+    local tables=("city" "companies" "industry_sector" "leader" "legal_form")
+    local output_directory="./e2e_data_sql"
+
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        echo -e "${RED}No running PostgreSQL container found. Start the database first.${NC}"
+        exit 1
+    fi
+
+    mkdir -p "$output_directory"
+
+    echo "Exporting up to $max_size_mb MB of data from each table for E2E testing..."
+
+    for table_name in "${tables[@]}"; do
+        local e2e_table="e2e_${table_name}"
+        local output_file="$output_directory/e2e_${table_name}.sql"
+
+        echo "Creating a regular table and exporting data from table '$table_name'..."
+
+        # Estimate the number of rows to limit data size to 15MB
+        local estimated_row_size
+        estimated_row_size=$(docker exec -u postgres -i "$postgres_container" psql -d postgres -t -c "
+            SELECT pg_column_size(t.*)
+            FROM $table_name t
+            LIMIT 1;
+        " | tr -d ' ')
+
+        if [ -z "$estimated_row_size" ] || [ "$estimated_row_size" -le 0 ]; then
+            echo -e "${RED}Failed to estimate row size for table '$table_name'.${NC}"
+            continue
+        fi
+
+        local rows_to_export=$((max_size_bytes / estimated_row_size))
+
+        # Create a regular table with sampled data
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "
+            DROP TABLE IF EXISTS $e2e_table;
+            CREATE TABLE $e2e_table AS
+            SELECT * FROM $table_name LIMIT $rows_to_export;
+        "
+
+        # Ensure the regular table is exported properly
+        docker exec -u postgres -i "$postgres_container" pg_dump -U postgres -t "$e2e_table" --data-only >"$output_file"
+
+        # Clean up the regular table
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $e2e_table;"
+
+        echo -e "${GREEN}Exported data from '$table_name' to '$output_file' (up to $max_size_mb MB).${NC}"
+    done
+
+    echo -e "${GREEN}All E2E data has been exported as SQL dumps to the '$output_directory' directory.${NC}"
 }
 
 # Main script
@@ -376,6 +440,9 @@ else
         ;;
     backup_database)
         backup_database "$BACKUP_FORMAT"
+        ;;
+    export_e2e_data_sql)
+        export_e2e_data_as_sql
         ;;
     transfer_leaders_csv_to_database)
         if [ -z "$CSV_FILE" ]; then
