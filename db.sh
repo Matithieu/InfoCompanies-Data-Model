@@ -27,12 +27,14 @@ usage() {
     echo "  export_unique_cities             Export unique cities"
     echo "  export_unique_values             Export unique values (requires query and output file)"
     echo "  insert_data                      Insert big data into the database"
-    echo "  export_e2e_data_sql              Export E2E data as SQL dumps"
+    echo "  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)"
+    echo "  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)"
     echo
     echo "Example:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
-    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_data_sql"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_main_data"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_sub_data"
     echo
 }
 
@@ -196,25 +198,56 @@ remove_error_line() {
     sed -i "${line_number}d" "$csv_file"
 }
 
-# Function to export unique values to a CSV file
+# Function to export unique values to a CSV or SQL file
 export_unique_values() {
     local query="$1"
     local output_file="$2"
+    local format="${3:-csv}" # Default format is CSV
     local base_name
     base_name=$(basename "$output_file")
-    local output_csv="/tmp/$base_name"
-
+    local output_dir
+    output_dir=$(dirname "$output_file")
     local postgres_container
     postgres_container=$(get_postgres_container_id)
+
     if [ -z "$postgres_container" ]; then
         echo "No running PostgreSQL container found."
         exit 1
     fi
 
-    docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
-    docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
-    sudo chmod 777 "./InfoCompanies-Data-Model"
-    docker cp "$postgres_container:$output_csv" "./InfoCompanies-Data-Model/$base_name"
+    # Ensure the output directory exists
+    mkdir -p "$output_dir"
+
+    if [ "$format" == "csv" ]; then
+        local output_csv="/tmp/$base_name"
+        echo "Exporting unique values in CSV format..."
+        docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
+        docker cp "$postgres_container:$output_csv" "$output_file"
+        echo "Exported CSV file saved to $output_file"
+    elif [ "$format" == "sql" ]; then
+        echo "Exporting unique values in SQL format..."
+        local temp_table="temp_export"
+        local output_sql="$output_file.sql"
+
+        # Create a temporary table with an auto-generated ID
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "
+            DROP TABLE IF EXISTS $temp_table;
+            CREATE TABLE $temp_table AS
+            SELECT row_number() OVER () AS id, * FROM ($query) AS subquery;
+        "
+
+        # Use pg_dump to export the temporary table in SQL format
+        docker exec -u postgres -i "$postgres_container" pg_dump -U postgres --data-only --table="$temp_table" postgres >"$output_sql"
+
+        # Clean up the temporary table
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
+
+        echo "Exported SQL file saved to $output_sql"
+    else
+        echo "Invalid format specified. Use 'csv' or 'sql'."
+        exit 1
+    fi
 }
 
 # Function to backup the database
@@ -291,7 +324,7 @@ insert_data() {
 export_e2e_data_as_sql() {
     local max_size_mb=15
     local max_size_bytes=$((max_size_mb * 1024 * 1024))
-    local tables=("city" "companies" "industry_sector" "leader" "legal_form")
+    local tables=("companies" "leader")
     local output_directory="./e2e_data_sql"
 
     local postgres_container
@@ -339,10 +372,29 @@ export_e2e_data_as_sql() {
         # Clean up the regular table
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $e2e_table;"
 
+        # Set the correct permissions for the output file
+        sudo chown -R "$(whoami)":staff ./e2e_data_sql
+
         echo -e "${GREEN}Exported data from '$table_name' to '$output_file' (up to $max_size_mb MB).${NC}"
     done
 
     echo -e "${GREEN}All E2E data has been exported as SQL dumps to the '$output_directory' directory.${NC}"
+}
+
+export_e2e_sub_data() {
+    local output_directory="./e2e_data_sql"
+
+    # Ensure the output directory exists
+    mkdir -p "$output_directory"
+
+    echo "Exporting E2E sub-data to $output_directory in SQL format..."
+    export_unique_values "SELECT DISTINCT industry_sector AS value FROM public.companies" "$output_directory/e2e_industry_sector" "sql"
+    export_unique_values "SELECT DISTINCT city AS value FROM public.companies" "$output_directory/e2e_city" "sql"
+    export_unique_values "SELECT DISTINCT legal_form AS value FROM public.companies" "$output_directory/e2e_legal_form" "sql"
+
+    # Set the correct permissions for the output directory
+    sudo chown -R "$(whoami):staff" ./e2e_data_sql
+    echo "E2E sub-data export completed."
 }
 
 # Main script
@@ -441,8 +493,11 @@ else
     backup_database)
         backup_database "$BACKUP_FORMAT"
         ;;
-    export_e2e_data_sql)
+    export_e2e_main_data)
         export_e2e_data_as_sql
+        ;;
+    export_e2e_sub_data)
+        export_e2e_sub_data
         ;;
     transfer_leaders_csv_to_database)
         if [ -z "$CSV_FILE" ]; then
