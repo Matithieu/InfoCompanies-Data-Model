@@ -22,6 +22,8 @@ usage() {
     echo "  transfer_leaders_csv_to_database Transfer leaders CSV to database"
     echo "  transfer_city_csv_to_database    Transfer city CSV to database"
     echo "  transfer_industry_sector_csv_to_database Transfer industry sector CSV to database"
+    echo "  transfer_legal_form_csv_to_database Transfer legal form CSV to database"
+    echo "  transfer_region_csv_to_database  Transfer region CSV to database"
     echo "  create_companies_indexes         Create indexes for companies"
     echo "  export_unique_industry_sector    Export unique industry sectors"
     echo "  export_unique_cities             Export unique cities"
@@ -30,11 +32,13 @@ usage() {
     echo "  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)"
     echo "  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)"
     echo
-    echo "Example:"
+    echo "Examples:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
-    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_main_data"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_sub_data"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_unique_regions"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transfer_region_csv_to_database -f \"./InfoCompanies-Data-Model/region.csv\""
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
     echo
 }
 
@@ -290,6 +294,7 @@ export_all_unique_values() {
     export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
     export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
     export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
+    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
 }
 
 # Function to insert data into the database (big data)
@@ -391,6 +396,7 @@ export_e2e_sub_data() {
     export_unique_values "SELECT DISTINCT industry_sector AS value FROM public.companies" "$output_directory/e2e_industry_sector" "sql"
     export_unique_values "SELECT DISTINCT city AS value FROM public.companies" "$output_directory/e2e_city" "sql"
     export_unique_values "SELECT DISTINCT legal_form AS value FROM public.companies" "$output_directory/e2e_legal_form" "sql"
+    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "$output_directory/e2e_region" "sql"
 
     # Set the correct permissions for the output directory
     sudo chown -R "$(whoami):staff" ./e2e_data_sql
@@ -453,6 +459,7 @@ if [ -z "$ACTION" ]; then
     create_indexes "city" "name"
     create_indexes "industry_sector" "name"
     create_indexes "legal_form" "name"
+    create_indexes "region" "name"
 
     create_indexes "leader" "siren" "company_name" "first_name" "last_name"
 
@@ -474,6 +481,7 @@ if [ -z "$ACTION" ]; then
     transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
     transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
     transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
+    transfer_csv_to_database "region" "./InfoCompanies-Data-Model/region.csv" "name" ","
 
     # Create trigram indexes
     create_trigram_indexes "companies" "company_name"
@@ -523,6 +531,22 @@ else
         fi
         transfer_csv_to_database "industry_sector" "$CSV_FILE" "name" ","
         ;;
+    transfer_legal_form_csv_to_database)
+        if [ -z "$CSV_FILE" ]; then
+            echo "Error: CSV file is required for this action."
+            usage
+            exit 1
+        fi
+        transfer_csv_to_database "legal_form" "$CSV_FILE" "name" ","
+        ;;
+    transfer_region_csv_to_database)
+        if [ -z "$CSV_FILE" ]; then
+            echo "Error: CSV file is required for this action."
+            usage
+            exit 1
+        fi
+        transfer_csv_to_database "region" "$CSV_FILE" "name" ","
+        ;;
     create_companies_indexes)
         create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
         ;;
@@ -531,6 +555,9 @@ else
         ;;
     export_unique_cities)
         export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
+        ;;
+    export_unique_regions)
+        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
         ;;
     export_unique_values)
         if [ ${#ARGS[@]} -lt 2 ]; then
