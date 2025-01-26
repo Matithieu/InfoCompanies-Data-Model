@@ -21,8 +21,8 @@ def sleep_time():
 
 def configure_selenium():
     # https://googlechromelabs.github.io/chrome-for-testing/
-    path = "./Parsing/chromedriver-linux64/chromedriver"
-    driver = uc.Chrome(headless=True, use_subprocess=True, driver_executable_path=path)
+    # path = "./Parsing/chromedriver-linux64/chromedriver"
+    driver = uc.Chrome(headless=False, use_subprocess=True)
     return driver
 
 
@@ -303,46 +303,70 @@ def process_chunk(chunk, output_file, lock):
 def main():
     input_file = "./final.csv"
     output_file = "./fichier_combine_updated.csv"
-    chunk_size = 1000  # Adjust based on your needs and available memory
+    chunk_size = 500
 
-    # Create output file with header if it doesn't exist
+    # Create the output file if it doesn't exist
     if not os.path.exists(output_file):
         df = pd.read_csv(input_file, nrows=0, delimiter=";")
         df.to_csv(output_file, index=False, sep=";")
 
-    # Read already processed companies
+    # Track processed SIREN numbers
     processed_companies = set()
     try:
-        df_processed = pd.read_csv(output_file, usecols=["company_name"], delimiter=";")
-        processed_companies = set(df_processed["company_name"])
+        df_processed = pd.read_csv(
+            output_file,
+            usecols=["siren_number"],
+            delimiter=";",
+            dtype={"siren_number": str},  # Ensure SIREN is read as string
+        )
+        processed_companies = set(df_processed["siren_number"])
     except Exception as e:
-        print(f"Error reading processed companies: {e}")
+        print(f"Error reading processed SIRENs: {e}")
 
-    # Use a Manager to create a shareable Lock
+    # Use multiprocessing with a Manager for thread-safe lock
     with Manager() as manager:
         lock = manager.Lock()
 
-        # Process file in chunks
-        with pd.read_csv(input_file, chunksize=chunk_size, delimiter=";") as reader:
-            for chunk in reader:
-                # Filter out already processed companies
-                chunk = chunk[~chunk["company_name"].isin(processed_companies)]
+        try:
+            # Read the input file in chunks
+            with pd.read_csv(
+                input_file,
+                chunksize=chunk_size,
+                delimiter=";",
+                dtype={"siren_number": str},  # Ensure SIREN is read as string
+            ) as reader:
+                for chunk in reader:
+                    # Filter out rows with SIRENs already processed
+                    chunk = chunk[~chunk["siren_number"].isin(processed_companies)]
 
-                if not chunk.empty:
-                    # Create a process pool
-                    with multiprocessing.Pool() as pool:
-                        # Split the chunk into sub-chunks for each process
-                        num_processes = multiprocessing.cpu_count()
+                    if not chunk.empty:
+                        # Split the chunk into sub-chunkzs for parallel processing
+                        # num_procs = max(1, multiprocessing.cpu_count() - 1)  # Reserve one core
+                        num_processes = 1  # Debugging with 1 process
                         sub_chunks = np.array_split(chunk, num_processes)
 
-                        # Start parallel processing
-                        pool.starmap(
-                            process_chunk,
-                            [
-                                (sub_chunk, output_file, lock)
-                                for sub_chunk in sub_chunks
-                            ],
-                        )
+                        # Create a multiprocessing pool
+                        with multiprocessing.Pool(processes=num_processes) as pool:
+                            try:
+                                # Process sub-chunks in parallel
+                                pool.starmap(
+                                    process_chunk,
+                                    [
+                                        (sub_chunk, output_file, lock)
+                                        for sub_chunk in sub_chunks
+                                    ],
+                                )
+                            except KeyboardInterrupt:
+                                print(
+                                    "\033[91mInterruption detected! Cleanly shutting down processes...\033[0m"
+                                )
+                                pool.terminate()  # Immediately stop the workers
+                                pool.join()  # Wait for the processes to finish
+                                print("\033[91mAll processes have been stopped.\033[0m")
+                                return  # Cleanly exit the main function
+
+        except KeyboardInterrupt:
+            print("\033[91mManual interruption detected. Stopping the program.\033[0m")
 
 
 if __name__ == "__main__":
