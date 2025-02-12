@@ -21,8 +21,11 @@ def sleep_time():
 
 def configure_selenium():
     # https://googlechromelabs.github.io/chrome-for-testing/
-    # path = "./Parsing/chromedriver-linux64/chromedriver"
-    driver = uc.Chrome(headless=False, use_subprocess=True)
+    path = "./Parsing/chromedriver-mac-arm64/chromedriver"
+    driver = uc.Chrome(
+        headless=False,
+        use_subprocess=True,
+    )
     return driver
 
 
@@ -79,12 +82,21 @@ def scrape_company_info(driver, company_name, adresse):
 def extract_phone_number(driver):
     phone = ""
     try:
+        # Try extracting phone number from span with aria-label
         phone_element = driver.find_element(
             By.XPATH, "//span[contains(@aria-label, 'Appeler le')]"
         )
         phone = phone_element.text
     except NoSuchElementException:
-        phone = ""
+        try:
+            # If not found, try extracting from div containing 'Téléphone :'
+            phone_div = driver.find_element(
+                By.XPATH, "//div[contains(text(), 'Téléphone')]"
+            )
+            phone = phone_div.text.split(":")[-1].strip()
+        except NoSuchElementException:
+            phone = ""
+
     return phone
 
 
@@ -341,8 +353,10 @@ def main():
 
                     if not chunk.empty:
                         # Split the chunk into sub-chunkzs for parallel processing
-                        # num_procs = max(1, multiprocessing.cpu_count() - 1)  # Reserve one core
-                        num_processes = 1  # Debugging with 1 process
+                        num_processes = max(
+                            1, multiprocessing.cpu_count() - 1
+                        )  # Reserve one core
+                        # num_processes = 1  # Debugging with 1 process
                         sub_chunks = np.array_split(chunk, num_processes)
 
                         # Create a multiprocessing pool
@@ -372,3 +386,12 @@ def main():
 if __name__ == "__main__":
     multiprocessing.freeze_support()  # Necessary for Windows
     main()
+
+
+# Debugging purposes
+# if __name__ == "__main__":
+#     driver = configure_selenium()
+#     company_info = scrape_company_info(
+#         driver, "Computerline", "1411 Rte de la Côté d'Azur"
+#     )
+#     print(company_info)
