@@ -14,7 +14,7 @@ usage() {
     echo "Options:"
     echo "  -h, --help                       Show this help message"
     echo "  -a ACTION, --action ACTION       Specify the action to perform"
-    echo "  -f FILE, --file FILE             Specify the CSV file"
+    echo "  -f FILE, --file FILE              Specify the CSV file"
     echo "  -b FORMAT, --backup-format FORMAT  Specify the backup format (sql or csv)"
     echo
     echo "Actions:"
@@ -112,6 +112,7 @@ transfer_csv_to_database() {
         exit 1
     fi
 
+    # This command needs to be run with sudo to give the script the necessary permissions
     sudo chmod +r "$csv_file_path"
 
     local postgres_container
@@ -304,7 +305,8 @@ insert_data() {
     # List of scripts to run
     scripts=(
         #"./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/fix-json.py"
-        "./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/create-and-update-table.py"
+        #"./InfoCompanies-Data-Model/ETL/load/load_companies.py"
+        "./InfoCompanies-Data-Model/ETL/load/scrapping/load_big_scrapped_companies.py"
     )
 
     # Run each script
@@ -415,8 +417,9 @@ if [ -z "$ACTION" ]; then
         exit 1
     fi
 
-    sudo chmod +r "$CSV_FILE"
-    cp "$CSV_FILE" "$CSV_FILE.bak"
+    # echo -e "You might have to enter the sudo password to give the script the necessary permissions.\n"
+    # sudo chmod +r "$CSV_FILE"
+    # cp "$CSV_FILE" "$CSV_FILE.bak"
 
     output=$(transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
@@ -425,7 +428,7 @@ if [ -z "$ACTION" ]; then
 
         if [ -n "$line_number" ]; then
             echo "Error at line $line_number. Deleting the line."
-            remove_error_line "$line_number" "$CSV_FILE"
+            # remove_error_line "$line_number" "$CSV_FILE"
             output=$(transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";" 2>&1)
             if [ $? -ne 0 ]; then
                 echo "Error during the transfer: $output"
@@ -442,7 +445,7 @@ if [ -z "$ACTION" ]; then
     echo "Transfer successful."
 
     # Transfer leaders CSV to database
-    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
+    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/ETL/data/output/transform/leaders.csv" "$(head -1 "./InfoCompanies-Data-Model/ETL/data/output/transform/leaders.csv" | tr ';' ',')" ";"
 
     # Enable pg_trgm extension
     enable_pg_trgm_extension
