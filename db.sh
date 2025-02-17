@@ -31,6 +31,8 @@ usage() {
     echo "  insert_data                      Insert big data into the database"
     echo "  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)"
     echo "  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)"
+    echo "  export_all_unique_values         Export all unique values to CSV files"
+    echo "  transport_all_unique_values      Transfer all unique values to the database"
     echo
     echo "Examples:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
@@ -39,6 +41,8 @@ usage() {
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_unique_regions"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transfer_region_csv_to_database -f \"./InfoCompanies-Data-Model/region.csv\""
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_all_unique_values" 
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transport_all_unique_values"
     echo
 }
 
@@ -226,6 +230,7 @@ export_unique_values() {
     if [ "$format" == "csv" ]; then
         local output_csv="/tmp/$base_name"
         echo "Exporting unique values in CSV format..."
+
         docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
         docker cp "$postgres_container:$output_csv" "$output_file"
@@ -292,10 +297,17 @@ backup_database() {
 
 # Function to export all unique values
 export_all_unique_values() {
-    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
-    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
-    export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
-    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
+    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
+    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
+    export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/legal_form.csv"
+    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+}
+
+transport_all_unique_values() {
+    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/data/export_docker/city.csv" "name" ","
+    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv" "name" ","
+    transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/data/export_docker/legal_form.csv" "name" ","
+    transfer_csv_to_database "region" "./InfoCompanies-Data-Model/data/export_docker/region.csv" "name" ","
 }
 
 # Function to insert data into the database (big data)
@@ -481,10 +493,7 @@ if [ -z "$ACTION" ]; then
     create_composite_index "companies" "industry_sector" "number_of_employee"
 
     # Transfer additional CSVs
-    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
-    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
-    transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
-    transfer_csv_to_database "region" "./InfoCompanies-Data-Model/region.csv" "name" ","
+    transport_all_unique_values
 
     # Create trigram indexes
     create_trigram_indexes "companies" "company_name"
@@ -554,13 +563,19 @@ else
         create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
         ;;
     export_unique_industry_sector)
-        export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
+        export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
         ;;
     export_unique_cities)
-        export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
+        export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
         ;;
     export_unique_regions)
-        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
+        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+        ;;
+    export_all_unique_values)
+        export_all_unique_values
+        ;;
+    transport_all_unique_values)
+        transport_all_unique_values
         ;;
     export_unique_values)
         if [ ${#ARGS[@]} -lt 2 ]; then
