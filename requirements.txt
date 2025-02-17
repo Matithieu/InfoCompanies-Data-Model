@@ -8,3 +8,4 @@ numpy
 undetected-chromedriver
 setuptools
 black
+chardet

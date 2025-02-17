@@ -1,6 +1,7 @@
 import csv
 import tempfile
 import os
+import unicodedata
 
 
 class FinalFileCleaner:
@@ -58,27 +59,53 @@ class FinalFileCleaner:
         print(f"Processing complete. File '{self.output_file}' has been updated.")
 
 
+def remove_trailing_dot_zero(value: str) -> str:
+    """Remove trailing '.0' if present."""
+    return value[:-2] if value.endswith(".0") else value
+
+
+def standardize_text(value: str) -> str:
+    """
+    Lowercase the text, strip whitespace, normalize Unicode characters,
+    perform basic replacements, and then capitalize the first letter.
+    """
+    # Remove leading/trailing whitespace and lowercase
+    value = value.strip().lower()
+
+    # Replace common mis-encodings
+    value = value.replace("ã", "a")
+    value = value.replace("Ã ", "à").replace("Ã", "à")
+    value = value.replace("à", "a")
+    value = value.replace("é", "e")
+
+    # Normalize Unicode (NFKC can help standardize some characters)
+    value = unicodedata.normalize("NFKC", value)
+
+    # Capitalize the first letter if the string is not empty
+    if value:
+        value = value[0].upper() + value[1:]
+
+    return value
+
+
 if __name__ == "__main__":
     input_file = "./ETL/data/output/combine/fichier_effectif_and_combine.csv"
     output_file = "./ETL/data/output/final.csv"
 
-    # Define cleaning rules:
-    # For example, remove a trailing ".0" from the values in specified columns.
-    def remove_trailing_dot_zero(value):
-        return value[:-2] if value.endswith(".0") else value
-
+    # Define the cleaning rules for various columns
     cleaning_rules = {
         "siren_number": remove_trailing_dot_zero,
         "nic_number": remove_trailing_dot_zero,
         "department_number": remove_trailing_dot_zero,
         "postal_code": remove_trailing_dot_zero,
         "number_of_employee": remove_trailing_dot_zero,
-        # You can add more columns and corresponding cleaning functions here.
+        "ape_label": standardize_text,
+        "city": standardize_text,
+        "region": standardize_text,
+        "industry_sector": standardize_text,
+        "legal_form": standardize_text,
     }
 
     # Create and run the ETL pipeline
     cleaner = FinalFileCleaner(input_file, output_file, cleaning_rules)
     cleaner.run()
-
-
-# to do: run the db script to see if the db is filled in meta
