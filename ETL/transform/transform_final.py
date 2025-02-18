@@ -2,6 +2,7 @@ import csv
 import tempfile
 import os
 import unicodedata
+import re
 
 
 class FinalFileCleaner:
@@ -66,26 +67,69 @@ def remove_trailing_dot_zero(value: str) -> str:
 
 def standardize_text(value: str) -> str:
     """
-    Lowercase the text, strip whitespace, normalize Unicode characters,
-    perform basic replacements, and then capitalize the first letter.
+    Cleans and standardizes text:
+    - Trim whitespace and convert to lowercase
+    - Normalize Unicode characters
+    - Remove accents properly
+    - Remove extra spaces
+    - Capitalize first letter or each word
     """
-    # Remove leading/trailing whitespace and lowercase
-    value = value.strip().lower()
+    if not value:
+        return ""
 
-    # Replace common mis-encodings
-    value = value.replace("ã", "a")
-    value = value.replace("Ã ", "à").replace("Ã", "à")
-    value = value.replace("à", "a")
-    value = value.replace("é", "e")
+    # Normalize Unicode (NFKC helps with common encoding issues)
+    value = unicodedata.normalize("NFKC", value).strip().lower()
 
-    # Normalize Unicode (NFKC can help standardize some characters)
-    value = unicodedata.normalize("NFKC", value)
+    # Remove accents properly
+    value = "".join(
+        c
+        for c in unicodedata.normalize("NFD", value)
+        if unicodedata.category(c) != "Mn"
+    )
 
-    # Capitalize the first letter if the string is not empty
-    if value:
-        value = value[0].upper() + value[1:]
+    # Replace multiple spaces with a single space
+    value = re.sub(r"\s+", " ", value)
+
+    # Capitalize first letter of each word (optional)
+    value = value.capitalize()  # Use value.title() if you want to capitalize every word
 
     return value
+
+
+def clean_city_name(value: str) -> str:
+    """
+    Cleans and standardizes city names:
+    - Removes leading numbers and special characters
+    - Strips unwanted uppercase alphanumeric codes
+    - Normalizes Unicode and removes accents
+    - Trims spaces and capitalizes words properly
+    """
+    if not value:
+        return ""
+
+    # Normalize Unicode and trim
+    value = unicodedata.normalize("NFKC", value).strip().lower()
+
+    # Remove accents
+    value = "".join(
+        c
+        for c in unicodedata.normalize("NFD", value)
+        if unicodedata.category(c) != "Mn"
+    )
+
+    # Remove leading numbers, symbols, and unwanted characters
+    value = re.sub(r"^[\W\d]+", "", value)
+
+    # Remove standalone uppercase alphanumeric codes (like "A15", "A4971")
+    value = re.sub(r"\b[A-Z0-9]{2,}\b", "", value).strip()
+
+    # Replace multiple spaces with a single space
+    value = re.sub(r"\s+", " ", value)
+
+    # Capitalize first letter of each word
+    value = value.title()
+
+    return value if value else None  # Ensure empty strings are returned as None
 
 
 if __name__ == "__main__":
@@ -100,7 +144,7 @@ if __name__ == "__main__":
         "postal_code": remove_trailing_dot_zero,
         "number_of_employee": remove_trailing_dot_zero,
         "ape_label": standardize_text,
-        "city": standardize_text,
+        "city": clean_city_name,
         "region": standardize_text,
         "industry_sector": standardize_text,
         "legal_form": standardize_text,
