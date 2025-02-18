@@ -1,6 +1,11 @@
 *.bak
 *.csv
 /Final-Sort/chromedriver-linux64
-!template.csv
 .venv
 venv
+.DS_Store
+.idea
+*.zip
+template.csv
+!template.csv.zip
+*.log

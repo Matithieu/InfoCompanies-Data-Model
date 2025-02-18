@@ -3,7 +3,7 @@
 # On MacOs, you need to create a venv and install the requirements
 # python3 -m venv venv
 # source .venv/bin/activate
-# pip install -r requirements.txt
+# pip install -q -r requirements.txt
 
 # Function to display usage
 usage() {
@@ -14,7 +14,7 @@ usage() {
     echo "Options:"
     echo "  -h, --help                       Show this help message"
     echo "  -a ACTION, --action ACTION       Specify the action to perform"
-    echo "  -f FILE, --file FILE             Specify the CSV file"
+    echo "  -f FILE, --file FILE              Specify the CSV file"
     echo "  -b FORMAT, --backup-format FORMAT  Specify the backup format (sql or csv)"
     echo
     echo "Actions:"
@@ -31,6 +31,8 @@ usage() {
     echo "  insert_data                      Insert big data into the database"
     echo "  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)"
     echo "  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)"
+    echo "  export_all_unique_values         Export all unique values to CSV files"
+    echo "  transport_all_unique_values      Transfer all unique values to the database"
     echo
     echo "Examples:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
@@ -39,6 +41,8 @@ usage() {
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_unique_regions"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transfer_region_csv_to_database -f \"./InfoCompanies-Data-Model/region.csv\""
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_all_unique_values" 
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transport_all_unique_values"
     echo
 }
 
@@ -112,6 +116,8 @@ transfer_csv_to_database() {
         exit 1
     fi
 
+    # This command needs to be run with sudo to give the script the necessary permissions
+    echo -e "You might have to enter the sudo password to give the script the necessary permissions.\n"
     sudo chmod +r "$csv_file_path"
 
     local postgres_container
@@ -225,6 +231,7 @@ export_unique_values() {
     if [ "$format" == "csv" ]; then
         local output_csv="/tmp/$base_name"
         echo "Exporting unique values in CSV format..."
+
         docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
         docker cp "$postgres_container:$output_csv" "$output_file"
@@ -291,10 +298,17 @@ backup_database() {
 
 # Function to export all unique values
 export_all_unique_values() {
-    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
-    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
-    export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/legal_form.csv"
-    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
+    export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
+    export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
+    export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/legal_form.csv"
+    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+}
+
+transport_all_unique_values() {
+    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/data/export_docker/city.csv" "name" ","
+    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv" "name" ","
+    transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/data/export_docker/legal_form.csv" "name" ","
+    transfer_csv_to_database "region" "./InfoCompanies-Data-Model/data/export_docker/region.csv" "name" ","
 }
 
 # Function to insert data into the database (big data)
@@ -303,8 +317,7 @@ insert_data() {
 
     # List of scripts to run
     scripts=(
-        #"./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/fix-json.py"
-        "./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/create-and-update-table.py"
+        "./InfoCompanies-Data-Model/ETL/load/scrapping/load_big_scrapped_companies.py"
     )
 
     # Run each script
@@ -415,9 +428,6 @@ if [ -z "$ACTION" ]; then
         exit 1
     fi
 
-    sudo chmod +r "$CSV_FILE"
-    cp "$CSV_FILE" "$CSV_FILE.bak"
-
     output=$(transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
     if [ $? -ne 0 ]; then
@@ -425,7 +435,7 @@ if [ -z "$ACTION" ]; then
 
         if [ -n "$line_number" ]; then
             echo "Error at line $line_number. Deleting the line."
-            remove_error_line "$line_number" "$CSV_FILE"
+            # remove_error_line "$line_number" "$CSV_FILE"
             output=$(transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";" 2>&1)
             if [ $? -ne 0 ]; then
                 echo "Error during the transfer: $output"
@@ -442,7 +452,7 @@ if [ -z "$ACTION" ]; then
     echo "Transfer successful."
 
     # Transfer leaders CSV to database
-    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/leaders_renamed.csv" "$(head -1 "./InfoCompanies-Data-Model/leaders_renamed.csv" | tr ';' ',')" ";"
+    transfer_csv_to_database "leader" "./InfoCompanies-Data-Model/ETL/data/output/transform/leaders.csv" "$(head -1 "./InfoCompanies-Data-Model/ETL/data/output/transform/leaders.csv" | tr ';' ',')" ";"
 
     # Enable pg_trgm extension
     enable_pg_trgm_extension
@@ -478,17 +488,13 @@ if [ -z "$ACTION" ]; then
     create_composite_index "companies" "industry_sector" "number_of_employee"
 
     # Transfer additional CSVs
-    transfer_csv_to_database "city" "./InfoCompanies-Data-Model/city.csv" "name" ","
-    transfer_csv_to_database "industry_sector" "./InfoCompanies-Data-Model/industry_sector.csv" "name" ","
-    transfer_csv_to_database "legal_form" "./InfoCompanies-Data-Model/legal_form.csv" "name" ","
-    transfer_csv_to_database "region" "./InfoCompanies-Data-Model/region.csv" "name" ","
+    transport_all_unique_values
 
     # Create trigram indexes
     create_trigram_indexes "companies" "company_name"
 
-    # Run the Python script
+    # Run the data insertion function
     insert_data
-    #python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
 
     echo "Data insertion into the database successful."
 
@@ -551,13 +557,19 @@ else
         create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
         ;;
     export_unique_industry_sector)
-        export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/industry_sector.csv"
+        export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
         ;;
     export_unique_cities)
-        export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/city.csv"
+        export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
         ;;
     export_unique_regions)
-        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/region.csv"
+        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+        ;;
+    export_all_unique_values)
+        export_all_unique_values
+        ;;
+    transport_all_unique_values)
+        transport_all_unique_values
         ;;
     export_unique_values)
         if [ ${#ARGS[@]} -lt 2 ]; then
