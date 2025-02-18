@@ -3,7 +3,7 @@
 # On MacOs, you need to create a venv and install the requirements
 # python3 -m venv venv
 # source .venv/bin/activate
-# pip install -r requirements.txt
+# pip install -q -r requirements.txt
 
 # Function to display usage
 usage() {
@@ -117,6 +117,7 @@ transfer_csv_to_database() {
     fi
 
     # This command needs to be run with sudo to give the script the necessary permissions
+    echo -e "You might have to enter the sudo password to give the script the necessary permissions.\n"
     sudo chmod +r "$csv_file_path"
 
     local postgres_container
@@ -316,8 +317,6 @@ insert_data() {
 
     # List of scripts to run
     scripts=(
-        #"./InfoCompanies-Data-Model/Final-Sort/Insert-DB/Temp-Table/fix-json.py"
-        #"./InfoCompanies-Data-Model/ETL/load/load_companies.py"
         "./InfoCompanies-Data-Model/ETL/load/scrapping/load_big_scrapped_companies.py"
     )
 
@@ -429,10 +428,6 @@ if [ -z "$ACTION" ]; then
         exit 1
     fi
 
-    # echo -e "You might have to enter the sudo password to give the script the necessary permissions.\n"
-    # sudo chmod +r "$CSV_FILE"
-    # cp "$CSV_FILE" "$CSV_FILE.bak"
-
     output=$(transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";" 2>&1)
 
     if [ $? -ne 0 ]; then
@@ -498,9 +493,8 @@ if [ -z "$ACTION" ]; then
     # Create trigram indexes
     create_trigram_indexes "companies" "company_name"
 
-    # Run the Python script
+    # Run the data insertion function
     insert_data
-    #python3 InfoCompanies-Data-Model/Final-Sort/Insert-DB/insert.py
 
     echo "Data insertion into the database successful."
 
