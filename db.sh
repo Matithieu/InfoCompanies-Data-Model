@@ -29,6 +29,7 @@ usage() {
     echo "  export_unique_cities             Export unique cities"
     echo "  export_unique_values             Export unique values (requires query and output file)"
     echo "  insert_data                      Insert big data into the database"
+    echo "  export_zipped_e2e_data           Export E2E data as SQL dumps and zip the directory"
     echo "  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)"
     echo "  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)"
     echo "  export_all_unique_values         Export all unique values to CSV files"
@@ -36,6 +37,7 @@ usage() {
     echo
     echo "Examples:"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
+    echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_zipped_e2e_data"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_main_data"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_sub_data"
     echo "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_unique_regions"
@@ -214,9 +216,7 @@ export_unique_values() {
     local output_file="$2"
     local format="${3:-csv}" # Default format is CSV
     local base_name
-    base_name=$(basename "$output_file")
-    local output_dir
-    output_dir=$(dirname "$output_file")
+    base_name=$(basename "$output_file" | sed 's/^e2e_//')
     local postgres_container
     postgres_container=$(get_postgres_container_id)
 
@@ -226,18 +226,18 @@ export_unique_values() {
     fi
 
     # Ensure the output directory exists
-    mkdir -p "$output_dir"
+    mkdir -p "$(dirname "$output_file")"
 
     if [ "$format" == "csv" ]; then
-        local output_csv="/tmp/$base_name"
-        echo "Exporting unique values in CSV format..."
+        local output_csv="/tmp/$base_name.csv"
+        echo "Exporting unique values for the $base_name table in CSV format..."
 
         docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
         docker cp "$postgres_container:$output_csv" "$output_file"
         echo "Exported CSV file saved to $output_file"
     elif [ "$format" == "sql" ]; then
-        echo "Exporting unique values in SQL format..."
+        echo "Exporting unique values for the $base_name table in SQL format..."
         local temp_table="temp_export"
         local output_sql="$output_file.sql"
 
@@ -254,12 +254,15 @@ export_unique_values() {
         # Clean up the temporary table
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
 
+        sed -i '' "s/public\.${temp_table}/public.${base_name}/g" "$output_sql"
+
         echo "Exported SQL file saved to $output_sql"
     else
         echo "Invalid format specified. Use 'csv' or 'sql'."
         exit 1
     fi
 }
+
 
 # Function to backup the database
 backup_database() {
@@ -301,7 +304,7 @@ export_all_unique_values() {
     export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
     export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
     export_unique_values "SELECT DISTINCT legal_form FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/legal_form.csv"
-    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+    export_unique_values "SELECT DISTINCT region FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
 }
 
 transport_all_unique_values() {
@@ -336,14 +339,16 @@ insert_data() {
 }
 
 # When exporting E2E data as SQL dumps, make sure to create the output directory and set the correct permissions:
-# sudo chown -R $(whoami):staff ./e2e_data_sql
+# sudo chown -R $(whoami):staff ./e2e/e2e_data_sql
 #
 # Function to export E2E data as SQL dumps
+# It exports up to 15MB of data from each table for E2E testing
+# It starts by creating a regular table with sampled data from the companies table, exports the data, and then drops the table
 export_e2e_data_as_sql() {
     local max_size_mb=15
     local max_size_bytes=$((max_size_mb * 1024 * 1024))
     local tables=("companies" "leader")
-    local output_directory="./e2e_data_sql"
+    local output_directory="./e2e/e2e_data_sql"
 
     local postgres_container
     postgres_container=$(get_postgres_container_id)
@@ -390,8 +395,11 @@ export_e2e_data_as_sql() {
         # Clean up the regular table
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $e2e_table;"
 
+        # Rename table references inside the SQL dump file
+        sed -i '' "s/public\.${e2e_table}/public.${table_name}/g" "$output_file"
+
         # Set the correct permissions for the output file
-        sudo chown -R "$(whoami)":staff ./e2e_data_sql
+        sudo chown -R "$(whoami)":staff "$output_file"
 
         echo -e "${GREEN}Exported data from '$table_name' to '$output_file' (up to $max_size_mb MB).${NC}"
     done
@@ -400,20 +408,44 @@ export_e2e_data_as_sql() {
 }
 
 export_e2e_sub_data() {
-    local output_directory="./e2e_data_sql"
+    local output_directory="./e2e/e2e_data_sql"
 
     # Ensure the output directory exists
     mkdir -p "$output_directory"
 
     echo "Exporting E2E sub-data to $output_directory in SQL format..."
-    export_unique_values "SELECT DISTINCT industry_sector AS value FROM public.companies" "$output_directory/e2e_industry_sector" "sql"
-    export_unique_values "SELECT DISTINCT city AS value FROM public.companies" "$output_directory/e2e_city" "sql"
-    export_unique_values "SELECT DISTINCT legal_form AS value FROM public.companies" "$output_directory/e2e_legal_form" "sql"
-    export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "$output_directory/e2e_region" "sql"
+    # Export unique values with 'id' and 'name' instead of 'id' and 'value'
+    export_unique_values "SELECT DISTINCT industry_sector AS name FROM public.companies" "$output_directory/e2e_industry_sector" "sql"
+    export_unique_values "SELECT DISTINCT city AS name FROM public.companies" "$output_directory/e2e_city" "sql"
+    export_unique_values "SELECT DISTINCT legal_form AS name FROM public.companies" "$output_directory/e2e_legal_form" "sql"
+    export_unique_values "SELECT DISTINCT region AS name FROM public.companies" "$output_directory/e2e_region" "sql"
 
     # Set the correct permissions for the output directory
-    sudo chown -R "$(whoami):staff" ./e2e_data_sql
+    sudo chown -R "$(whoami):staff" "$output_directory"
     echo "E2E sub-data export completed."
+}
+
+zip_e2e_data() {
+    local output_directory="./e2e/e2e_data_sql"
+    local zip_file="./e2e/data_sql.zip"
+
+    # Ensure the output directory exists
+    mkdir -p "$output_directory"
+
+    # Verify that the zip command is available
+    if ! command -v zip &> /dev/null; then
+        echo "zip command not found. Please install zip and try again."
+        exit 1
+    fi
+
+    # Verify that there are files to zip
+    if [ "$(ls -A "$output_directory")" ]; then
+        # Zip the E2E data directory
+        zip -r "$zip_file" "$output_directory"
+        echo "Zipped E2E data saved to $zip_file"
+    else
+        echo "No files to zip in the directory '$output_directory'."
+    fi
 }
 
 # Main script
@@ -506,6 +538,11 @@ else
         ;;
     backup_database)
         backup_database "$BACKUP_FORMAT"
+        ;;
+    export_zipped_e2e_data)
+        export_e2e_data_as_sql
+        export_e2e_sub_data
+        zip_e2e_data
         ;;
     export_e2e_main_data)
         export_e2e_data_as_sql
