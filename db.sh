@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Color definitions for logging output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
+BLUE='\033[1;34m'
 NC='\033[0m' # No Color
 
 # Logging functions
@@ -24,49 +24,46 @@ log_success() {
     echo -e "$(date +'%Y-%m-%d %H:%M:%S') [SUCCESS] ${GREEN}$*${NC}"
 }
 
+
 # Function to display usage
 usage() {
-    cat <<EOF
-Usage: $0 [options]
-
-If no options are specified, the script will run the default actions.
-
-Options:
-  -h, --help                       Show this help message
-  -a ACTION, --action ACTION       Specify the action to perform
-  -f FILE, --file FILE             Specify the CSV file
-  -b FORMAT, --backup-format FORMAT  Specify the backup format (sql or csv)
-
-Actions:
-  backup_database                  Backup the database
-  transfer_leaders_csv_to_database Transfer leaders CSV to database
-  transfer_city_csv_to_database    Transfer city CSV to database
-  transfer_industry_sector_csv_to_database Transfer industry sector CSV to database
-  transfer_legal_form_csv_to_database Transfer legal form CSV to database
-  transfer_region_csv_to_database  Transfer region CSV to database
-  create_companies_indexes         Create indexes for companies
-  export_unique_industry_sector    Export unique industry sectors
-  export_unique_cities             Export unique cities
-  export_unique_values             Export unique values (requires query and output file)
-  insert_data                      Insert big data into the database
-  export_zipped_e2e_data           Export E2E data as SQL dumps and zip the directory
-  export_e2e_main_data             Export E2E main data as SQL dumps (companies and leader)
-  export_e2e_sub_data              Export E2E sub data as SQL dumps (industry_sector, city, legal_form)
-  export_all_unique_values         Export all unique values to CSV files
-  transport_all_unique_values      Transfer all unique values to the database
-
-Examples:
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_zipped_e2e_data
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_main_data
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_sub_data
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_unique_regions
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a transfer_region_csv_to_database -f "./InfoCompanies-Data-Model/region.csv"
-  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_all_unique_values 
-  sudo -E ./InfoCompanies-Data-Model/db.sh -a transport_all_unique_values
-EOF
+    echo -e "${BLUE}Usage:${NC}"
+    echo -e "  $0 [options]"
+    echo -e ""
+    echo -e "${YELLOW}Description:${NC}"
+    echo -e "  This script manages database operations for the InfoCompanies project using Dockerized PostgreSQL."
+    echo -e "  It supports data backup, insertion, export, and transfer of CSV data."
+    echo -e ""
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "  -h, --help                        Show this help message and exit"
+    echo -e "  -a, --action ACTION               Specify the action to perform (see list of actions below)"
+    echo -e "  -f, --file FILE                   Path to the CSV file for data transfer"
+    echo -e "  -b, --backup-format FORMAT        Specify the backup format (sql or csv)"
+    echo -e ""
+    echo -e "${YELLOW}Available Actions:${NC}"
+    echo -e "  backup_database                   Backup the PostgreSQL database (use -b to set format)"
+    echo -e "  export_unique_values              Export unique values from specific columns (requires query and output file)"
+    echo -e "  insert_data                       Insert data into the database from predefined ETL scripts"
+    echo -e "  export_zipped_e2e_data            Export E2E data as SQL dumps and compress them into a zip archive"
+    echo -e "  export_e2e_main_data              Export main E2E data tables (companies, leader) as SQL dumps"
+    echo -e "  export_e2e_sub_data               Export sub E2E data (industry_sector, city, legal_form) as SQL dumps"
+    echo -e "  export_all_unique_values          Export all unique values (city, sector, legal form, region) to CSV files"
+    echo -e "  transport_all_unique_values       Transfer exported unique values from CSVs to the database"
+    echo -e ""
+    echo -e "${YELLOW}Examples:${NC}"
+    echo -e "  sudo -E ./InfoCompanies-Data-Model/db.sh -a backup_database -b csv"
+    echo -e "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_zipped_e2e_data"
+    echo -e "  sudo -E ./InfoCompanies-Data-Model/db.sh -a export_e2e_main_data"
+    echo -e "  sudo -E ./InfoCompanies-Data-Model/db.sh -f './InfoCompanies-Data-Model/final.csv'"
+    echo -e "  sudo -E ./InfoCompanies-Data-Model/db.sh -a transport_all_unique_values"
+    echo -e ""
+    echo -e "${YELLOW}Additional Information:${NC}"
+    echo -e "  - Ensure Docker is running and the PostgreSQL container is active."
+    echo -e "  - Use 'sudo' if permission issues occur while accessing files or containers."
+    echo -e "  - Backup directory: ./InfoCompanies-Data-Model/backup/"
+    echo -e "  - Exported data directory: ./InfoCompanies-Data-Model/data/export_docker/"
 }
+
 
 CSV_FILE=""
 ACTION=""
@@ -477,63 +474,21 @@ else
             export_e2e_sub_data
             zip_e2e_data
             ;;
-        export_e2e_main_data)
-            export_e2e_data_as_sql
-            ;;
-        export_e2e_sub_data)
-            export_e2e_sub_data
-            ;;
-        transfer_leaders_csv_to_database)
-            if [ -z "$CSV_FILE" ]; then
-                log_error "CSV file is required for this action."
+        transfer_csv_to_database)
+            if [ ${#ARGS[@]} -lt 4 ]; then
+                log_error "Error: 'transfer_csv_to_database' requires table name, CSV file, columns, and delimiter."
                 usage
                 exit 1
             fi
-            transfer_csv_to_database "leader" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";"
+            transfer_csv_to_database "${ARGS[0]}" "${ARGS[1]}" "${ARGS[2]}" "${ARGS[3]}"
             ;;
-        transfer_city_csv_to_database)
-            if [ -z "$CSV_FILE" ]; then
-                log_error "CSV file is required for this action."
+        create_indexes)
+            if [ ${#ARGS[@]} -lt 2 ]; then
+                log_error "Error: 'create_indexes' requires a table name and at least one column."
                 usage
                 exit 1
             fi
-            transfer_csv_to_database "city" "$CSV_FILE" "name" ","
-            ;;
-        transfer_industry_sector_csv_to_database)
-            if [ -z "$CSV_FILE" ]; then
-                log_error "CSV file is required for this action."
-                usage
-                exit 1
-            fi
-            transfer_csv_to_database "industry_sector" "$CSV_FILE" "name" ","
-            ;;
-        transfer_legal_form_csv_to_database)
-            if [ -z "$CSV_FILE" ]; then
-                log_error "CSV file is required for this action."
-                usage
-                exit 1
-            fi
-            transfer_csv_to_database "legal_form" "$CSV_FILE" "name" ","
-            ;;
-        transfer_region_csv_to_database)
-            if [ -z "$CSV_FILE" ]; then
-                log_error "CSV file is required for this action."
-                usage
-                exit 1
-            fi
-            transfer_csv_to_database "region" "$CSV_FILE" "name" ","
-            ;;
-        create_companies_indexes)
-            create_indexes "companies" "siren_number" "company_name" "legal_form" "industry_sector" "region" "city" "phone_number" "website" "email" "number_of_employee" "linkedin" "twitter" "facebook" "instagram" "youtube"
-            ;;
-        export_unique_industry_sector)
-            export_unique_values "SELECT DISTINCT industry_sector FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/industry_sector.csv"
-            ;;
-        export_unique_cities)
-            export_unique_values "SELECT DISTINCT city FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/city.csv"
-            ;;
-        export_unique_regions)
-            export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "./InfoCompanies-Data-Model/data/export_docker/region.csv"
+            create_indexes "${ARGS[0]}" "${ARGS[@]:1}"
             ;;
         export_all_unique_values)
             export_all_unique_values
