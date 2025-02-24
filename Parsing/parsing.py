@@ -301,7 +301,7 @@ def process_chunk(chunk, output_file, lock):
 
 
 def main():
-    input_file = "./final.csv"
+    input_file = "./ETL/data/output/final.csv"
     output_file = "./fichier_combine_updated.csv"
     chunk_size = 500
 
