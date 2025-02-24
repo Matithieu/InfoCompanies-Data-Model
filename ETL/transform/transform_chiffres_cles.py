@@ -3,7 +3,7 @@ import pandas as pd
 
 def clean_chiffres_cles(input_file: str, output_file: str):
     # Load the CSV file
-    df = pd.read_csv(input_file, sep=";")
+    df = pd.read_csv(input_file, sep=";", low_memory=False)
 
     # Replace the string "Confidentiel" with NaN throughout the DataFrame
     df.replace("Confidentiel", pd.NA, inplace=True)
@@ -40,7 +40,9 @@ def clean_chiffres_cles(input_file: str, output_file: str):
     # Identify columns containing "Date" and convert them to datetime (day-first format)
     date_columns = [col for col in df.columns if "Date" in col]
     for col in date_columns:
-        df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
+        df[col] = pd.to_datetime(
+            df[col], errors="coerce", dayfirst=True, format="%d/%m/%Y"
+        )
 
     # --- Convert Financial Columns ---
     # Identify columns containing "CA " or "Résultat" and convert them to numeric

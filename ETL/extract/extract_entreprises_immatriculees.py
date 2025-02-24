@@ -48,7 +48,9 @@ class EntreprisesImmatriculeesETL:
         for path in file_paths:
             print(f"Loading file {path}...")
             try:
-                df = pd.read_csv(path, sep=";", usecols=self.columns_to_keep)
+                df = pd.read_csv(
+                    path, sep=";", usecols=self.columns_to_keep, low_memory=False
+                )
                 self.frames.append(df)
             except Exception as e:
                 print(f"Error loading file {path}: {e}")

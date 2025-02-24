@@ -56,7 +56,9 @@ class ChiffresClesETL:
             file_path = self._get_file_path(year)
             print(f"Loading file {file_path}...")
             try:
-                data = pd.read_csv(file_path, sep=";", usecols=self.columns_to_keep)
+                data = pd.read_csv(
+                    file_path, sep=";", usecols=self.columns_to_keep, low_memory=False
+                )
             except Exception as e:
                 print(f"Error loading file for year {year}: {e}")
                 continue

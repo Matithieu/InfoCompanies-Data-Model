@@ -144,7 +144,7 @@ class RenameAndAddColumnsETL:
         """
         Extract the data from the input CSV file.
         """
-        df = pd.read_csv(self.input_file, delimiter=";")
+        df = pd.read_csv(self.input_file, delimiter=";", low_memory=False)
         return df
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:

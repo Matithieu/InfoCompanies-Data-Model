@@ -46,12 +46,14 @@ class EntreprisesRadieesETL:
             return
 
         for path in file_paths:
-            print(f"Chargement du fichier {path}...")
+            print(f"Loading file {path}...")
             try:
-                df = pd.read_csv(path, sep=";", usecols=self.columns_to_keep)
+                df = pd.read_csv(
+                    path, sep=";", usecols=self.columns_to_keep, low_memory=False
+                )
                 self.frames.append(df)
             except Exception as e:
-                print(f"Erreur lors du chargement du fichier {path} : {e}")
+                print(f"Error loading file {path}: {e}")
 
     def combine_data(self) -> pd.DataFrame:
         """
@@ -60,7 +62,7 @@ class EntreprisesRadieesETL:
         :return: The combined DataFrame.
         """
         if not self.frames:
-            print("Aucun DataFrame chargé, retourne un DataFrame vide.")
+            print("No DataFrames loaded, returning an empty DataFrame.")
             return pd.DataFrame()
         return pd.concat(self.frames, ignore_index=True)
 
@@ -74,7 +76,7 @@ class EntreprisesRadieesETL:
             os.makedirs(self.output_dir)
         output_path = os.path.join(self.output_dir, self.output_filename)
         df.to_csv(output_path, sep=";", index=False)
-        print(f"Fichier final enregistré avec succès sous : {output_path}")
+        print(f"Final file successfully saved as: {output_path}")
 
 
 if __name__ == "__main__":

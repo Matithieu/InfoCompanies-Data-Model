@@ -101,7 +101,7 @@ class FinalSortETL:
         :return: Merged DataFrame.
         """
         # Load the full template data
-        template_data = pd.read_csv(self.template_file, delimiter=";")
+        template_data = pd.read_csv(self.template_file, delimiter=";", low_memory=False)
         # Merge on left 'siren_number' and right 'siren'
         merged_data = template_data.merge(
             matched_effectif, left_on="siren_number", right_on="siren", how="left"
@@ -127,12 +127,10 @@ class FinalSortETL:
         """
         Run the full ETL pipeline.
         """
-        print("Starting FinalSort ETL Process...")
         siren_set = self.extract_template_siren_set()
         matched_effectif = self.extract_effectif_matches(siren_set)
         merged_data = self.merge_data(matched_effectif)
         self.load(merged_data)
-        print("FinalSort ETL Process Completed.")
 
 
 if __name__ == "__main__":

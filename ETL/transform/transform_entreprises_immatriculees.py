@@ -4,7 +4,7 @@ import numpy as np
 
 def clean_entreprises_immatriculees(input_file: str, output_file: str):
     # Lire le fichier CSV avec ";" comme séparateur
-    df = pd.read_csv(input_file, sep=";")
+    df = pd.read_csv(input_file, sep=";", low_memory=False)
 
     # Remplacer les chaînes vides par NaN pour plus de cohérence
     df.replace(r"^\s*$", np.nan, regex=True, inplace=True)

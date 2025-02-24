@@ -4,7 +4,7 @@ import numpy as np
 
 def clean_entreprises_radiees(input_file: str, output_file: str):
     # Load the CSV file with a semicolon as the delimiter
-    df = pd.read_csv(input_file, sep=";")
+    df = pd.read_csv(input_file, sep=";", low_memory=False)
 
     # Replace empty strings (or strings with only whitespace) with NaN
     df.replace(r"^\s*$", np.nan, regex=True, inplace=True)
