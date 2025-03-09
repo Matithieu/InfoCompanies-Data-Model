@@ -1,8 +1,8 @@
 import csv
-import tempfile
 import os
-import unicodedata
 import re
+import tempfile
+import unicodedata
 
 
 class FinalFileCleaner:

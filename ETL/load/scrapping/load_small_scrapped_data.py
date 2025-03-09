@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import csv
-import psycopg2
 import logging
+
+import psycopg2
 
 
 class ScrappedDatabaseLoader:

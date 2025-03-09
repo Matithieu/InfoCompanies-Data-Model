@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def clean_entreprises_radiees(input_file: str, output_file: str):

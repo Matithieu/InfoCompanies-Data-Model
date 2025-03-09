@@ -8,4 +8,5 @@ numpy
 undetected-chromedriver
 setuptools
 black
+isort
 chardet

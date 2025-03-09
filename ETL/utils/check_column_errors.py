@@ -1,5 +1,6 @@
-import pandas as pd
 import glob
+
+import pandas as pd
 
 # Chemin du dossier contenant les CSV
 folder_path = "./ETL/data/output/transform/"

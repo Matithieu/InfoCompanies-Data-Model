@@ -1,5 +1,5 @@
-import os
 import csv
+import os
 
 # Dossier contenant les fichiers CSV
 input_dir = "./ETL/data/input"

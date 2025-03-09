@@ -1,5 +1,5 @@
-import os
 import codecs
+import os
 
 # Répertoires
 input_dir = "./ETL/data/input"

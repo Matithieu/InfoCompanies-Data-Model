@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import psycopg2
 import logging
-import sys
 import os
+import sys
+
+import psycopg2
 
 # Setup logging
 logging.basicConfig(
