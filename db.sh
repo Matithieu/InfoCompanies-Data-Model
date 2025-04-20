@@ -47,6 +47,8 @@ usage() {
     echo -e "  export_zipped_e2e_data            Export E2E data as SQL dumps and compress them into a zip archive"
     echo -e "  export_e2e_main_data              Export main E2E data tables (companies, leader) as SQL dumps"
     echo -e "  export_e2e_sub_data               Export sub E2E data (industry_sector, city, legal_form) as SQL dumps"
+    echo -e "  zip_final_data                    Compress final data files into zip archives"
+    echo -e "  unzip_final_data                  Decompress final data zip archives"
     echo -e "  export_all_unique_values          Export all unique values (city, sector, legal form, region) to CSV files"
     echo -e "  transport_all_unique_values       Transfer exported unique values from CSVs to the database"
     echo -e ""
@@ -410,6 +412,54 @@ zip_e2e_data() {
     fi
 }
 
+zip_final_data() {
+    files_to_zip=(
+        "leaders.csv:./ETL/data/output/transform/leaders.csv"
+        "final.csv:./ETL/data/output/final.csv"
+    )
+
+    if ! command -v zip &> /dev/null; then
+        log_error "zip command not found. Please install zip and try again."
+        exit 1
+    fi
+
+    for entry in "${files_to_zip[@]}"; do
+        IFS=":" read -r name file_path <<< "$entry"
+        if [ -f "$file_path" ]; then
+            local zip_file="${file_path}.zip"
+            zip -j "$zip_file" "$file_path"
+            log_success "Zipped file saved to $zip_file"
+        else
+            log_warn "File '$file_path' for '$name' does not exist and will be skipped."
+        fi
+    done
+}
+
+unzip_final_data() {
+    files_to_unzip=(
+        "leaders.csv:./ETL/data/output/transform/leaders.csv.zip"
+        "final.csv:./ETL/data/output/final.csv.zip"
+    )
+
+    if ! command -v unzip &> /dev/null; then
+        log_error "unzip command not found. Please install unzip and try again."
+        exit 1
+    fi
+
+    for entry in "${files_to_unzip[@]}"; do
+        IFS=":" read -r name zip_file <<< "$entry"
+        if [ -f "$zip_file" ]; then
+            local output_dir
+            output_dir=$(dirname "$zip_file")
+            unzip -o "$zip_file" -d "$output_dir"
+            log_success "Unzipped file '$zip_file' to '$output_dir'"
+        else
+            log_warn "Zip file '$zip_file' for '$name' does not exist and will be skipped."
+        fi
+    done
+}
+
+
 # Main script
 if [ -z "$ACTION" ]; then
     log_info "No action specified. Running default actions."
@@ -468,6 +518,12 @@ else
             ;;
         backup_database)
             backup_database "$BACKUP_FORMAT"
+            ;;
+        zip_final_data)
+            zip_final_data
+            ;;
+        unzip_final_data)
+            unzip_final_data
             ;;
         export_zipped_e2e_data)
             export_e2e_data_as_sql
