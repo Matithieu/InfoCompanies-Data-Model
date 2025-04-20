@@ -9,3 +9,4 @@ venv
 template.csv
 !template.csv.zip
 *.log
+*.dump

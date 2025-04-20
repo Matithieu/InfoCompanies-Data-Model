@@ -286,8 +286,8 @@ backup_database() {
     if [ "$backup_format" == "sql" ]; then
         log_info "Backing up the PostgreSQL database in SQL format."
         docker exec -u postgres -i "$postgres_container" pg_dump -U postgres -F c -f /tmp/db_backup.dump postgres
-        log_info "Exporting the backup to ./InfoCompanies-Data-Model/backup/db_backup.dump"
-        docker cp "$postgres_container:/tmp/db_backup.dump" "./InfoCompanies-Data-Model/backup/db_backup.dump"
+        log_info "Exporting the backup to ./InfoCompanies-Data-Model/data/backup/db_backup.dump"
+        docker cp "$postgres_container:/tmp/db_backup.dump" "./InfoCompanies-Data-Model/data/backup/db_backup.dump"
         log_success "Backup saved!"
     elif [ "$backup_format" == "csv" ]; then
         log_info "Backing up the PostgreSQL database in CSV format with semicolon delimiters."
@@ -295,13 +295,34 @@ backup_database() {
         for table in "${tables[@]}"; do
             local csv_file="/tmp/${table}_backup.csv"
             docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy $table TO '$csv_file' WITH CSV HEADER DELIMITER ';';"
-            docker cp "$postgres_container:$csv_file" "./InfoCompanies-Data-Model/${table}_backup.csv"
-            log_success "Backup of table '$table' saved to ./InfoCompanies-Data-Model/${table}_backup.csv"
+            docker cp "$postgres_container:$csv_file" "./InfoCompanies-Data-Model/data/backup/${table}_backup.csv"
+            log_success "Backup of table '$table' saved to ./InfoCompanies-Data-Model/data/backup/${table}_backup.csv"
         done
     else
         log_error "Invalid backup format specified. Use 'sql' or 'csv'."
         exit 1
     fi
+}
+
+load_backup() {
+    local backup_file="./InfoCompanies-Data-Model/data/backup/db_backup.dump"
+
+    if [ ! -f "$backup_file" ]; then
+        log_error "Backup file '$backup_file' does not exist."
+        exit 1
+    fi
+
+    local postgres_container
+    postgres_container=$(get_postgres_container_id)
+    if [ -z "$postgres_container" ]; then
+        log_error "No running PostgreSQL container found."
+        exit 1
+    fi
+
+    log_info "Loading the backup from '$backup_file' into the PostgreSQL database."
+    docker cp "$backup_file" "$postgres_container:/tmp/db_backup.dump"
+    docker exec -u postgres -i "$postgres_container" pg_restore -U postgres -d postgres -c /tmp/db_backup.dump
+    log_success "Backup successfully loaded into the database."
 }
 
 # Function to export all unique values
@@ -414,8 +435,9 @@ zip_e2e_data() {
 
 zip_final_data() {
     files_to_zip=(
-        "leaders.csv:./ETL/data/output/transform/leaders.csv"
-        "final.csv:./ETL/data/output/final.csv"
+        # "leaders.csv:./ETL/data/output/transform/leaders.csv"
+        # "final.csv:./ETL/data/output/final.csv"
+        "backup.dump:./InfoCompanies-Data-Model/data/backup/db_backup.dump"
     )
 
     if ! command -v zip &> /dev/null; then
@@ -437,8 +459,9 @@ zip_final_data() {
 
 unzip_final_data() {
     files_to_unzip=(
-        "leaders.csv:./ETL/data/output/transform/leaders.csv.zip"
-        "final.csv:./ETL/data/output/final.csv.zip"
+        # "leaders.csv:./ETL/data/output/transform/leaders.csv.zip"
+        # "final.csv:./ETL/data/output/final.csv.zip"
+        "backup.dump:./InfoCompanies-Data-Model/data/backup/db_backup.dump.zip"
     )
 
     if ! command -v unzip &> /dev/null; then
@@ -518,6 +541,9 @@ else
             ;;
         backup_database)
             backup_database "$BACKUP_FORMAT"
+            ;;
+        load_backup)
+            load_backup
             ;;
         zip_final_data)
             zip_final_data
