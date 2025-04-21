@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Color definitions for logging output
 RED='\033[1;31m'
 GREEN='\033[1;32m'
@@ -485,12 +487,19 @@ unzip_final_data() {
 
 # Main script
 if [ -z "$ACTION" ]; then
+    if [ "$EUID" -ne 0 ]; then
+            log_error "This script must be run as root. Please use 'sudo' to execute it."
+            exit 1
+    fi
+
     log_info "No action specified. Running default actions."
     if [ -z "$CSV_FILE" ]; then
         log_error "CSV file is required for the default action."
         usage
         exit 1
     fi
+
+    
 
     log_info "Transfering the 'companies' CSV file to the PostgreSQL database."
     transfer_csv_to_database "companies" "$CSV_FILE" "$(head -1 "$CSV_FILE" | tr ';' ',')" ";"
