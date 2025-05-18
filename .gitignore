@@ -1,12 +1,18 @@
+# File extensions
 *.bak
 *.csv
-/Final-Sort/chromedriver-linux64
+*.dump
+*.gz
+*.log
+*.sql
+*.zip
+
+# Exceptions
+!template.csv.zip
+
+# Directories and system files
+.DS_Store
+.env
+.idea
 .venv
 venv
-.DS_Store
-.idea
-*.zip
-template.csv
-!template.csv.zip
-*.log
-*.dump

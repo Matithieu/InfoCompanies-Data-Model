@@ -1,0 +1,37 @@
+services:
+  postgres:
+    container_name: infocompanies-data-model-postgres
+    image: postgres:16.4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # - ./final.csv:/csv/final.csv
+      # - ./leaders.csv:/csv/leaders.csv
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin4:
+    container_name: infocompanies-data-model-pgadmin
+    image: dpage/pgadmin4:9.3
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+volumes:
+  postgres_data:
+  pgadmin_data:

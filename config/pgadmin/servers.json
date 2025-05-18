@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "postgres",
+      "Group": "Servers",
+      "Host": "infocompanies-data-model-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Timeout": 10,
+      "Comment": "Local Postgres"
+    }
+  }
+}
