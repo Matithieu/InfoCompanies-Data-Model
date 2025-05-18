@@ -12,7 +12,7 @@ if [[ "${GITHUB_CI:-}" == "true" ]]; then
 fi
 
 docker compose up -d --quiet-pull
-sleep 2
+sleep 5
 
 log_info "Initializing the database."
 cd ./schema
