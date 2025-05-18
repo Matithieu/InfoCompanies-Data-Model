@@ -28,11 +28,11 @@ jobs:
 
       # Rework happend only in ETL folder
       - name: Run black
-        run: black --check ./ETL
+        run: black --check ./
 
       - name: Run isort
-        run: isort --check-only ./ETL
-      
+        run: isort --check-only ./
+
       - name: Install shellcheck and run ShellCheck
         run: |
           sudo apt-get update

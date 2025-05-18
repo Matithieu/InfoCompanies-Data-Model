@@ -1,10 +1,11 @@
 import csv
 import datetime
 import os
+import random
+import time
+
 import requests
 from bs4 import BeautifulSoup
-import time
-import random
 
 
 # Helper function for random sleep times

@@ -1,6 +1,5 @@
-from logging.config import fileConfig
-from sqlalchemy import create_engine, text
 import configparser  # Use ConfigParser for reading config
+from logging.config import fileConfig
 
 from app.models.autocomplete import Base as AutocompleteBase
 from app.models.companies import Base as CompaniesBase
@@ -8,7 +7,7 @@ from app.models.config import Base as ConfigBase
 from app.models.leaders import Base as LeadersBase
 from app.models.user_company_status import Base as UserCompanyStatusBase
 from app.models.user_quota import Base as UserQuotaBase
-
+from sqlalchemy import create_engine, text
 
 # Replace Alembic context with custom config handling
 config = configparser.ConfigParser()

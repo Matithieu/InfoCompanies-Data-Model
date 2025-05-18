@@ -1,7 +1,5 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
-
 from alembic import context
 from app.models.autocomplete import Base as AutocompleteBase
 from app.models.companies import Base as CompaniesBase
@@ -9,6 +7,7 @@ from app.models.config import Base as ConfigBase
 from app.models.leaders import Base as LeadersBase
 from app.models.user_company_status import Base as UserCompanyStatusBase
 from app.models.user_quota import Base as UserQuotaBase
+from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
