@@ -15,7 +15,7 @@ fi
 # Main script
 # ./scripts/pull-csv.sh
 
-docker compose up -d
+docker compose up -d --quiet-pull
 
 setup_virtual_environment
 
