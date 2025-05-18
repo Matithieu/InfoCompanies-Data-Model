@@ -3,7 +3,7 @@ services:
     container_name: infocompanies-data-model-postgres
     image: postgres:16.4
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       # - ./final.csv:/csv/final.csv
       # - ./leaders.csv:/csv/leaders.csv
     environment:
@@ -29,9 +29,9 @@ services:
     depends_on:
       - postgres
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin-data:/var/lib/pgadmin
       - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
 
 volumes:
-  postgres_data:
-  pgadmin_data:
+  postgres-data:
+  pgadmin-data:

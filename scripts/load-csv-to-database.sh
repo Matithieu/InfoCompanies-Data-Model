@@ -27,8 +27,6 @@ transfer_csv_to_database() {
         exit 1
     fi
 
-    sudo chmod +r "$csv_file_path"
-
     local postgres_container
     postgres_container=$(get_infocompanies_data_model_postgres_container)
 

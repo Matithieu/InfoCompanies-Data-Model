@@ -1,5 +1,4 @@
 import configparser  # Use ConfigParser for reading config
-from logging.config import fileConfig
 
 from app.models.autocomplete import Base as AutocompleteBase
 from app.models.companies import Base as CompaniesBase

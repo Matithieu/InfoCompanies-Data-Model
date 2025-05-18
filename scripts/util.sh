@@ -29,6 +29,11 @@ get_infocompanies_data_model_postgres_container() {
     echo "infocompanies-data-model-postgres"
 }
 
+# The volume name is different from the container name
+get_infocompanies_data_model_postgres_volume() {
+    echo "infocompanies-data-model_postgres-data"
+}
+
 
 # Function to export unique values to a CSV or SQL file
 export_unique_values() {

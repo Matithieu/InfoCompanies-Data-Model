@@ -72,10 +72,10 @@ docker compose up -d
 
 ### 5. Initialize Database & Load Data
 
-Run the main orchestration script (requires `sudo` for file permissions):
+Run the main orchestration script:
 
 ```bash
-sudo ./db.sh
+./db.sh
 ```
 
 This will:

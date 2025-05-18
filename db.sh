@@ -6,17 +6,13 @@ set -euo pipefail
 source ./scripts/util.sh
 
 
-if [ "$EUID" -ne 0 ]; then
-    echo "This script must be run as root. Please use sudo."
-    exit 1
+# Main script
+if [[ "${GITHUB_CI:-}" == "true" ]]; then
+  ./scripts/pull-csv.sh
 fi
 
-
-# Main script
-# ./scripts/pull-csv.sh
-
 docker compose up -d --quiet-pull
-
+sleep 2
 
 log_info "Initializing the database."
 cd ./schema

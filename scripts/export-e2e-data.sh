@@ -42,7 +42,6 @@ export_e2e_data_as_sql() {
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $e2e_table;"
 
         sed -i '' "s/public\.${e2e_table}/public.${table_name}/g" "$output_file"
-        sudo chown -R "$(whoami)":staff "$output_file"
 
         log_success "Exported data from '$table_name' to '$output_file' (up to $max_size_mb MB)."
     done
@@ -57,8 +56,6 @@ export_e2e_sub_data() {
     export_unique_values "SELECT DISTINCT city AS name FROM public.companies" "$sql_output_directory/e2e_city" "sql"
     export_unique_values "SELECT DISTINCT legal_form AS name FROM public.companies" "$sql_output_directory/e2e_legal_form" "sql"
     export_unique_values "SELECT DISTINCT region AS name FROM public.companies" "$sql_output_directory/e2e_region" "sql"
-
-    sudo chown -R "$(whoami):staff" "$sql_output_directory"
     
     log_success "E2E sub-data export completed."
 }

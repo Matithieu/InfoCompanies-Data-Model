@@ -35,8 +35,6 @@ jobs:
 
       - name: Install shellcheck and run ShellCheck
         run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
           shellcheck ./db.sh
           shellcheck ./scripts/*.sh
 
@@ -61,8 +59,8 @@ jobs:
       - name: Setup the env of meta
         run: echo "${{ secrets.NEXUS }}" > .env
 
-      - name: Run the db.sh script
-        run: sudo ./db.sh
+      - name: Run the "db.sh" script
+        run: ./db.sh
 
       # To update: If it is merged to main -> final tag (10.1.0) or (latest?)
       # To update: If it is just a PR -> latest tag of the branch (10.0.2025-01-01-xxxx) Git Commit Hash?
