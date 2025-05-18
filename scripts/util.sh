@@ -29,27 +29,6 @@ get_infocompanies_data_model_postgres_container() {
     echo "infocompanies-data-model-postgres"
 }
 
-# Function to set up and activate a Python virtual environment
-setup_virtual_environment() {
-    if [ ! -d ".venv" ]; then
-        python3 -m venv .venv
-        log_info "Virtual environment created."
-    fi
-
-    # Activate the virtual environment
-    # shellcheck disable=SC1091
-    source .venv/bin/activate
-    log_info "Virtual environment activated."
-
-    # Install required Python packages
-    if [ -f "requirements-dev.in" ]; then
-        pip install -r requirements-dev.in --quiet
-        log_info "Python dependencies installed."
-    else
-        log_warn "requirements-dev.in not found. Skipping dependency installation."
-    fi
-}
-
 
 # Function to export unique values to a CSV or SQL file
 export_unique_values() {

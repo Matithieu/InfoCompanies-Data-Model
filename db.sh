@@ -17,10 +17,9 @@ fi
 
 docker compose up -d --quiet-pull
 
-setup_virtual_environment
 
-cd ./schema
 log_info "Initializing the database."
+cd ./schema
 alembic upgrade head
 
 log_info "Executing Database.py"
