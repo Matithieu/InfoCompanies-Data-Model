@@ -59,12 +59,12 @@ jobs:
       - name: Copy template.env to .env
         run: cp template.env .env
 
-      - name: Setup the env of the project
-        run: echo "${{ secrets.NEXUS }}" >> .env
-
       - name: Run the "db.sh" script
         env:
           GITHUB_CI: "true"
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: ./db.sh
       # To update: If it is merged to main -> final tag (10.1.0) or (latest?)
       # To update: If it is just a PR -> latest tag of the branch (10.0.2025-01-01-xxxx) Git Commit Hash?
