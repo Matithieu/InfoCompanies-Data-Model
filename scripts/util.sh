@@ -70,7 +70,6 @@ export_unique_values() {
 
         docker exec -u postgres -i "$postgres_container" pg_dump -U postgres --data-only --table="$temp_table" postgres >"$output_sql"
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
-        sed -i '' "s/public\.${temp_table}/public.${base_name}/g" "$output_sql"
 
         log_success "Exported SQL file saved to $output_sql"
     else

@@ -41,8 +41,6 @@ export_e2e_data_as_sql() {
         docker exec -u postgres -i "$postgres_container" pg_dump -U postgres -t "$e2e_table" --data-only >"$output_file"
         docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $e2e_table;"
 
-        sed -i '' "s/public\.${e2e_table}/public.${table_name}/g" "$output_file"
-
         log_success "Exported data from '$table_name' to '$output_file' (up to $max_size_mb MB)."
     done
 
