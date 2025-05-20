@@ -5,6 +5,7 @@
 *.gz
 *.log
 *.sql
+*.tar
 *.zip
 
 # Exceptions

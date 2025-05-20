@@ -60,6 +60,8 @@ export_e2e_sub_data() {
 
 gzip_e2e_data() {
     local gzip_file="$output_directory/e2e_data_sql.tar.gz"
+    local archive_name
+    archive_name="$(basename "$gzip_file")"
 
     if ! command -v tar &> /dev/null || ! command -v gzip &> /dev/null; then
         log_error "tar or gzip command not found. Please install them and try again."
@@ -67,7 +69,7 @@ gzip_e2e_data() {
     fi
 
     if [ "$(ls -A "$output_directory")" ]; then
-        tar -czf "$gzip_file" -C "$output_directory" .
+        tar --exclude="$archive_name" -czf "$gzip_file" -C "$output_directory" .
         log_success "Gzipped E2E data saved to $gzip_file"
     else
         log_error "No files to gzip in the directory '$output_directory'."
