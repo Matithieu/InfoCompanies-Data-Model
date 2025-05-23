@@ -20,17 +20,6 @@ To extract the required data for autocomplete:
     }
     ```
 
-2. **Export Subsets for E2E Testing:**
-    - In the same file, locate the `export_e2e_sub_data` function.
-    - Add your line of code to extract a subset of data for end-to-end (E2E) tests.
-
-    ```bash
-    # Example: Exporting a subset of company names for testing
-    export_e2e_sub_data() {
-        export_unique_values "SELECT DISTINCT region AS value FROM public.companies" "$output_directory/e2e_region" "sql"
-    }
-    ```
-
 ---
 
 ## Step 2: Index the Data

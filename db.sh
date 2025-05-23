@@ -24,7 +24,6 @@ cd ..
 
 
 ./scripts/load-csv-to-database.sh
-./scripts/export-e2e-data.sh
 
 docker compose down
 

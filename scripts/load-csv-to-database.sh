@@ -39,6 +39,50 @@ transfer_csv_to_database() {
 }
 
 
+# Function to export unique values to a CSV or SQL file
+export_unique_values() {
+    local query="$1"
+    local output_file="$2"
+    local format="${3:-csv}" # Default format is CSV
+    local base_name
+    base_name=$(basename "$output_file")
+    local postgres_container
+    postgres_container=$(get_infocompanies_data_model_postgres_container)
+
+    mkdir -p "$(dirname "$output_file")"
+
+    if [ "$format" == "csv" ]; then
+        local output_csv="/tmp/$base_name.csv"
+        log_info "Exporting unique values for the $base_name table in CSV format..."
+
+        docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
+        docker cp "$postgres_container:$output_csv" "$output_file"
+
+        log_success "Exported CSV file saved to $output_file"
+    elif [ "$format" == "sql" ]; then
+        log_info "Exporting unique values for the $base_name table in SQL format..."
+
+        local temp_table="temp_export"
+        local output_sql="$output_file.sql"
+
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "
+            DROP TABLE IF EXISTS $temp_table;
+            CREATE TABLE $temp_table AS
+            SELECT row_number() OVER () AS id, * FROM ($query) AS subquery;
+        "
+
+        docker exec -u postgres -i "$postgres_container" pg_dump -U postgres --data-only --table="$temp_table" postgres >"$output_sql"
+        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
+
+        log_success "Exported SQL file saved to $output_sql"
+    else
+        log_error "Invalid format specified. Use 'csv' or 'sql'."
+        exit 1
+    fi
+}
+
+
 # Main script execution starts here
 log_info "Loading 'companies' and 'leaders' CSV data into the database."
 transfer_csv_to_database "companies" "./final.csv" "$(head -1 "./final.csv" | tr ';' ',')" ";"

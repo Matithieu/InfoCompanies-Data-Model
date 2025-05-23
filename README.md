@@ -18,7 +18,6 @@ This repository manages the **InfoCompanies** project's data model, and database
 ├── schema/                    # Database schema, Alembic migrations, and SQLAlchemy models
 │   ├── alembic/               # Alembic migration scripts and config
 │   └── app/                   # SQLAlchemy models and DB initialization
-├── data/                      # Data exports, backups, and E2E test datasets
 ├── config/                    # PgAdmin configuration
 ├── docs/                      # Additional documentation (e.g., autocomplete guide)
 └── .github/                   # CI/CD workflows
@@ -33,7 +32,6 @@ This repository manages the **InfoCompanies** project's data model, and database
 - **Database Schema Management**: SQLAlchemy models and Alembic migrations for versioned schema evolution.
 - **Automated Data Loading**: Bash scripts to orchestrate pulling, unzipping, and importing CSVs into the database.
 - **Backup & Restore**: Tools for SQL/CSV backup and restore, including gzip support.
-- **Export for E2E Testing**: Export minimal datasets for integration/E2E tests.
 - **Autocomplete Support**: Extraction and indexing of unique values for fast autocomplete APIs.
 - **CI/CD**: GitHub Actions for linting, formatting, and build validation.
 
@@ -82,7 +80,6 @@ This will:
 - Start Docker containers
 - Run Alembic migrations
 - Load CSVs from the ETL
-- Export E2E datasets
 - Shut down containers
 
 ---
@@ -104,7 +101,6 @@ This will:
 - **Backup/Restore**: [scripts/backup.sh](scripts/backup.sh)
 - **CSV Transfer**: [scripts/util.sh](scripts/util.sh)
 - **Data Loading**: [scripts/load-csv-to-database.sh](scripts/load-csv-to-database.sh)
-- **E2E Export**: [scripts/export-e2e-data.sh](scripts/export-e2e-data.sh)
 
 ### CI/CD
 
