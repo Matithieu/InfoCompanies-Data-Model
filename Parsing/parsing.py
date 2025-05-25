@@ -1,18 +1,18 @@
 import csv
-import os
-import undetected_chromedriver as uc
-
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
-import random
 import multiprocessing
-from multiprocessing import Manager
-import pandas as pd
-import numpy as np
+import os
+import random
 import re
+import time
+from multiprocessing import Manager
+
+import numpy as np
+import pandas as pd
+import undetected_chromedriver as uc
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def sleep_time():

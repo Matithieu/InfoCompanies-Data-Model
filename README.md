@@ -1,99 +1,123 @@
-# InfoCompanies Database Management Script
+# InfoCompanies Data Model
 
-This Bash script is used to manage database operations for the **InfoCompanies** project using a **Dockerized PostgreSQL** instance. It supports backups, data insertion, exports, CSV transfers, and more.
-
----
-
-## 🧰 Features
-
-- Database backup (to `SQL` or `CSV`)
-- Data insertion from Python ETL scripts
-- Export unique values using custom SQL queries
-- Create simple, composite, or trigram indexes
-- Transfer CSV data into the database
-- Export and import data for end-to-end (E2E) testing
-- Load existing SQL or CSV backups
+This repository manages the **InfoCompanies** project's data model, and database operations. It provides a complete workflow for company data using a Dockerized PostgreSQL database and robust migration/versioning with Alembic.
 
 ---
 
-## 🚀 Requirements
+## 🗂️ Repository Structure
 
-- Docker (with a running PostgreSQL container)
-- Python 3 with required ETL dependencies
-- `sudo` access (needed for some file operations)
-
----
-
-## 🧪 Usage
-
-### Syntax:
-
-```bash
-./infocompanies_db.sh <command> [options]
 ```
-
-### Available Commands:
-
-- **backup**: Backup the database to an SQL or CSV file.
-- **insert**: Run Python ETL scripts and insert data into the database.
-- **export**: Export specific data from the database using a custom SQL query.
-- **index**: Create database indexes (simple, composite, or trigram).
-- **transfer**: Import a CSV file into the specified database table.
-- **export-e2e**: Export minimal data for end-to-end testing.
-- **import-e2e**: Import a previously exported E2E dataset.
-- **load**: Load a backup file into the database.
-
----
-
-### 📂 Examples
-
-```bash
-# Backup the database to SQL
-./infocompanies_db.sh backup
-
-# Insert data using ETL scripts
-./infocompanies_db.sh insert
-
-# Export unique values from a column
-./infocompanies_db.sh export "SELECT DISTINCT sector FROM companies"
-
-# Create a trigram index
-./infocompanies_db.sh index trigram name
-
-# Transfer CSV data into a table
-./infocompanies_db.sh transfer companies.csv companies
-
-# Export a lightweight E2E dataset
-./infocompanies_db.sh export-e2e
-
-# Import the E2E dataset
-./infocompanies_db.sh import-e2e
-
-# Load a previous SQL or CSV backup
-./infocompanies_db.sh load path/to/backup.sql
+.
+├── db.sh                      # Main orchestration script for DB setup and data loading
+├── docker-compose.yml         # Docker services for PostgreSQL and PgAdmin
+├── requirements-dev.in        # Python dependencies for DB scripts
+├── README.md                  # Main usage and feature documentation
+├── template.env               # Example environment variables
+├── parsing/                   # Python scripts for web scraping and data enrichment
+├── scripts/                   # Shell and Python scripts for data loading, backup, export, etc.
+├── schema/                    # Database schema, Alembic migrations, and SQLAlchemy models
+│   ├── alembic/               # Alembic migration scripts and config
+│   └── app/                   # SQLAlchemy models and DB initialization
+├── config/                    # PgAdmin configuration
+├── docs/                      # Additional documentation (e.g., autocomplete guide)
+└── .github/                   # CI/CD workflows
 ```
 
 ---
 
-### 📝 Notes
+## 🚀 Main Features
 
-- Make sure the Docker container is running and the database is accessible.
-- Customize the script to fit your database name, user, or container settings if necessary.
-- For E2E testing, only minimal required data is handled to keep tests lightweight.
+- **Dockerized PostgreSQL**: Easy local setup with persistent volumes and PgAdmin UI.
+- **Data Enrichment**: Python scripts for scraping and loading company data.
+- **Database Schema Management**: SQLAlchemy models and Alembic migrations for versioned schema evolution.
+- **Automated Data Loading**: Bash scripts to orchestrate pulling, unzipping, and importing CSVs into the database.
+- **Backup & Restore**: Tools for SQL/CSV backup and restore, including gzip support.
+- **Autocomplete Support**: Extraction and indexing of unique values for fast autocomplete APIs.
+- **CI/CD**: GitHub Actions for linting, formatting, and build validation.
 
 ---
 
-## 🌱 Environment Configuration
+## 🛠️ Getting Started
 
-To configure the environment, ensure the following:
+### 1. Clone the Repository
 
-1. **Docker**: Install Docker and ensure the PostgreSQL container is running.
-2. **Python Dependencies**: Install required Python dependencies for ETL scripts:
-  ```bash
-  pip install -r requirements.txt
-  ```
-3. **Script Permissions**: Make the script executable:
-  ```bash
-  chmod +x infocompanies_db.sh
-  ```
+```bash
+git clone <repo-url>
+cd InfoCompanies-Data-Model
+```
 
+### 2. Configure Environment
+
+Copy and edit `.env` from `template.env`:
+
+```bash
+cp template.env .env
+```
+
+### 3. Install Python Dependencies
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.in
+```
+
+### 4. Start Database Services
+
+```bash
+docker compose up -d
+```
+
+### 5. Initialize Database & Load Data
+
+Run the main orchestration script:
+
+```bash
+./db.sh
+```
+
+This will:
+- Start Docker containers
+- Run Alembic migrations
+- Load CSVs from the ETL
+- Shut down containers
+
+---
+
+## 🧩 Key Components
+
+### Database Schema
+
+- Defined in [schema/app/models/](schema/app/models/)
+- Managed and versioned with Alembic ([schema/alembic/](schema/alembic/))
+
+### Parsing
+
+- Web scraping and data enrichment in [parsing/parsing.py](parsing/parsing.py) and [parsing/parsing_request.py](parsing/parsing_request.py)
+- Loads and updates company info from Google and other sources
+
+### Data Operations
+
+- **Backup/Restore**: [scripts/backup.sh](scripts/backup.sh)
+- **CSV Transfer**: [scripts/util.sh](scripts/util.sh)
+- **Data Loading**: [scripts/load-csv-to-database.sh](scripts/load-csv-to-database.sh)
+
+### CI/CD
+
+- Linting, formatting, and build checks in [.github/workflows/action.yml](.github/workflows/action.yml)
+
+---
+
+## 📚 Documentation
+
+- [README.md](README.md): Main usage and features
+- [schema/README.md](schema/README.md): Alembic and schema management
+- [docs/AUTOCOMPLETE.md](docs/AUTOCOMPLETE.md): How to add autocomplete support
+
+---
+
+## 📝 Notes
+
+- All scripts assume a Unix-like environment and require Docker.
+- Data files (`.csv`, `.dump`, etc.) are git-ignored by default.
+- For troubleshooting, check logs in the output pane or use `docker logs`.

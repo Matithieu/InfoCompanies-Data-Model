@@ -24,11 +24,50 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r ./requirements/lint.in
 
       # Rework happend only in ETL folder
       - name: Run black
-        run: black --check ./ETL
+        run: black --check ./
 
       - name: Run isort
-        run: isort --check-only ./ETL
+        run: isort --check-only ./
+
+      - name: Install shellcheck and run ShellCheck
+        run: |
+          shellcheck ./db.sh
+          shellcheck ./scripts/*.sh
+
+  build:
+    # Only run if the event is a manual trigger
+    if: github.event_name == 'workflow_dispatch'
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements/build.in
+
+      - name: Copy template.env to .env
+        run: cp template.env .env
+
+      - name: Run the "db.sh" script
+        env:
+          GITHUB_CI: "true"
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: ./db.sh
+
+      # To update: If it is merged to main -> final tag (10.1.0) or (latest?)
+      # To update: If it is just a PR -> latest tag of the branch (10.0.2025-01-01-xxxx) Git Commit Hash?
