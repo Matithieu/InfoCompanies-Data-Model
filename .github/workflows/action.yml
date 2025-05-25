@@ -39,6 +39,8 @@ jobs:
           shellcheck ./scripts/*.sh
 
   build:
+    # Only run if the event is a manual trigger
+    if: github.event_name == 'workflow_dispatch'
     needs: lint
     runs-on: ubuntu-latest
 
@@ -66,5 +68,6 @@ jobs:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: ./db.sh
+
       # To update: If it is merged to main -> final tag (10.1.0) or (latest?)
       # To update: If it is just a PR -> latest tag of the branch (10.0.2025-01-01-xxxx) Git Commit Hash?
