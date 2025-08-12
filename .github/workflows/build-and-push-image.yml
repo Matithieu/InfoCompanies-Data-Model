@@ -25,8 +25,8 @@ jobs:
         with:
           python-version: "3.11"
       
-      - name: Makes sure inputs.environment is set
-        if: ${{ inputs.environment != 'prod' && inputs.environment != 'dev' }}
+      - if: ${{ inputs.environment != 'prod' && inputs.environment != 'dev' }}
+        name: Makes sure inputs.environment is set
         run: |
           echo "Error: 'environment' input is required ('dev' or 'prod')."
           exit 1
