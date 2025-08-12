@@ -24,6 +24,3 @@ cd ..
 
 
 ./scripts/load-csv-to-database.sh
-
-docker compose down
-

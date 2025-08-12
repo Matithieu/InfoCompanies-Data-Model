@@ -1,0 +1,70 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_CI: true
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+      DOCKER_DATA_MODEL_CONTAINER_NAME: infocompanies-data-model-postgres
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      
+      - name: Makes sure inputs.environment is set
+        if: ${{ inputs.environment != 'prod' && inputs.environment != 'dev' }}
+        run: |
+          echo "Error: 'environment' input is required ('dev' or 'prod')."
+          exit 1
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements/build.in
+
+      - name: Copy template.env to .env
+        run: cp template.env .env
+
+      - if: ${{ inputs.environment == 'dev' }}
+        name: Run database setup script
+        run: ./db.sh
+
+      - name: Log in to Nexus Docker registry
+        run: echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_URL}" -u "${NEXUS_USERNAME}" --password-stdin
+
+      - name: Generate a tag, commit and push the image to Nexus
+        run: |
+          DOCKER_TAG=$(date +%Y%m%d%H%M%S)
+          IMAGE="${NEXUS_URL}/${DOCKER_DATA_MODEL_CONTAINER_NAME}-${{ inputs.environment }}:${DOCKER_TAG}"
+
+          if [ "${{ inputs.environment }}" = 'dev' ]; then
+            docker commit $DOCKER_DATA_MODEL_CONTAINER_NAME $IMAGE
+          else
+            docker build -t $IMAGE -f prod.Dockerfile .
+          fi
+
+          docker push $IMAGE
+          echo "Docker image pushed: $IMAGE"
+
+      - name: Remove Nexus login credentials
+        run: docker logout ${NEXUS_URL}
+
+      - name: Clean up Docker resources
+        run: |
+          docker compose down || echo "No docker-compose file found or no containers running"
+          docker system prune -f
+          echo "Cleaned up Docker resources."

@@ -20,8 +20,8 @@ setup_virtual_environment() {
 
     local requirements_folder="./requirements"
     local requirements_files=(
-        "$requirements_folder/lint.sh"
-        "$requirements_folder/build.sh"
+        "$requirements_folder/build.in"
+        "$requirements_folder/lint.in"
     )
 
     # Install requirements
