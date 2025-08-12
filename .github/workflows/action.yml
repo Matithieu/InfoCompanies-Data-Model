@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - develop      # dev trigger (automatic)
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:  # prod trigger (manual)
 
 jobs:
