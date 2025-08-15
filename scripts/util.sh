@@ -35,4 +35,22 @@ get_infocompanies_data_model_postgres_volume() {
     echo "infocompanies-data-model_postgres-data"
 }
 
+# Nexus
+build_nexus_url_with_port() {
+    local port="$1"
+    if [[ -z "$port" ]]; then
+        echo "$NEXUS_URL"
+    else
+        echo "${NEXUS_URL}:${port}"
+    fi
+}
 
+build_nexus_username_with_password() {
+    local username="$1"
+    local password="$2"
+    if [[ -z "$username" || -z "$password" ]]; then
+        echo ""
+    else
+        echo "${username}:${password}"
+    fi
+}

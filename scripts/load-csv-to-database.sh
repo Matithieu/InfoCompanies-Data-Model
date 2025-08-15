@@ -27,13 +27,10 @@ transfer_csv_to_database() {
         exit 1
     fi
 
-    local postgres_container
-    postgres_container=$(get_infocompanies_data_model_postgres_container)
-
     log_info "Transferring the CSV file '$csv_file_path' to the PostgreSQL database."
 
-    docker cp "$csv_file_path" "$postgres_container:$container_csv_file"
-    docker exec -u postgres -i "$postgres_container" psql -d postgres -c "COPY $table_name($columns) FROM '$container_csv_file' DELIMITER '$delimiter' CSV HEADER;"
+    cp "$csv_file_path" "$container_csv_file"
+    psql -d postgres -c "COPY $table_name($columns) FROM '$container_csv_file' DELIMITER '$delimiter' CSV HEADER;"
     
     log_success "Transfer of '$csv_file_path' to the database table '$table_name' completed successfully."
 }
@@ -46,8 +43,6 @@ export_unique_values() {
     local format="${3:-csv}" # Default format is CSV
     local base_name
     base_name=$(basename "$output_file")
-    local postgres_container
-    postgres_container=$(get_infocompanies_data_model_postgres_container)
 
     mkdir -p "$(dirname "$output_file")"
 
@@ -55,25 +50,25 @@ export_unique_values() {
         local output_csv="/tmp/$base_name.csv"
         log_info "Exporting unique values for the $base_name table in CSV format..."
 
-        docker exec -u postgres -i "$postgres_container" mkdir -p /tmp
-        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
-        docker cp "$postgres_container:$output_csv" "$output_file"
-
+        mkdir -p /tmp
+        psql -d postgres -c "\copy ($query) TO '$output_csv' CSV HEADER;"
+        cp "$output_csv" "$output_file"
         log_success "Exported CSV file saved to $output_file"
+
     elif [ "$format" == "sql" ]; then
         log_info "Exporting unique values for the $base_name table in SQL format..."
 
         local temp_table="temp_export"
         local output_sql="$output_file.sql"
 
-        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "
+        psql -d postgres -c "
             DROP TABLE IF EXISTS $temp_table;
             CREATE TABLE $temp_table AS
             SELECT row_number() OVER () AS id, * FROM ($query) AS subquery;
         "
 
-        docker exec -u postgres -i "$postgres_container" pg_dump -U postgres --data-only --table="$temp_table" postgres >"$output_sql"
-        docker exec -u postgres -i "$postgres_container" psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
+        pg_dump -U postgres --data-only --table="$temp_table" postgres >"$output_sql"
+        psql -d postgres -c "DROP TABLE IF EXISTS $temp_table;"
 
         log_success "Exported SQL file saved to $output_sql"
     else
