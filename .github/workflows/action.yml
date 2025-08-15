@@ -3,20 +3,22 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - develop      # dev trigger (automatic)
+      - develop # dev trigger (automatic)
   pull_request:
     branches:
       - develop
-  workflow_dispatch:  # prod trigger (manual)
+  workflow_dispatch: # prod trigger (manual)
 
 jobs:
   dev_build:
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev
+    secrets: inherit
 
   prod_build:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: prod
+    secrets: inherit

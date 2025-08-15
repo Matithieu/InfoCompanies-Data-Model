@@ -6,6 +6,15 @@ on:
       environment:
         required: true
         type: string
+    secrets:
+      NEXUS_URL:
+        required: true
+      NEXUS_DOCKER_URL:
+        required: true
+      NEXUS_USERNAME:
+        required: true
+      NEXUS_PASSWORD:
+        required: true
 
 jobs:
   build:
@@ -30,9 +39,20 @@ jobs:
       - if: ${{ inputs.environment == 'dev' }}
         name: Login to Nexus native port for pulling CSVs
         run: |
+          # Create temporary .env file for the script
+          cat > .env << EOF
+          NEXUS_URL=${NEXUS_URL}
+          NEXUS_DOCKER_URL=${NEXUS_DOCKER_URL}
+          NEXUS_USERNAME=${NEXUS_USERNAME}
+          NEXUS_PASSWORD=${NEXUS_PASSWORD}
+          EOF
+
           echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_URL}" -u "${NEXUS_USERNAME}" --password-stdin
-          ./scripts/pull-csv.sh
+          ./scripts/nexus/pull-csv.sh
           docker logout "${NEXUS_URL}"
+
+          # Clean up .env file
+          rm -f .env
 
       - name: Build prefilled Postgres image
         run: |
