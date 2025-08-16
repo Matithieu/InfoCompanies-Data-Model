@@ -38,7 +38,19 @@ jobs:
 
       - if: ${{ inputs.environment == 'dev' }}
         name: Pull CSV files from Nexus
-        run: ./scripts/nexus/pull-csv.sh
+        run: |
+          # Create temporary .env file for the script
+          cat > .env << EOF
+          NEXUS_URL=${NEXUS_URL}
+          NEXUS_DOCKER_URL=${NEXUS_DOCKER_URL}
+          NEXUS_USERNAME=${NEXUS_USERNAME}
+          NEXUS_PASSWORD=${NEXUS_PASSWORD}
+          EOF
+
+          ./scripts/nexus/pull-csv.sh
+
+          # Clean up .env file
+          rm -f .env
 
       - name: Build prefilled Postgres image
         run: |
