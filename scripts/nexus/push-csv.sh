@@ -8,9 +8,10 @@ source ./scripts/util.sh
 source .env
 
 # Reminder: we use the native Nexus port and not the Docker one
-NEXUS_CSV_URL="${NEXUS_URL}/repository/datasets"
+NEXUS_CSV_URL="$NEXUS_URL/repository/datasets"
 USERNAME_WITH_PASSWORD=$(build_nexus_username_with_password "$NEXUS_USERNAME" "$NEXUS_PASSWORD")
 
+echo "Nexus CSV URL: $NEXUS_CSV_URL"
 
 # TODO: Change that to be only done by the CI
 FINAL_TAG="0.1"
@@ -21,12 +22,16 @@ echo "Pushing CSVs to Nexus..."
 curl -u "$USERNAME_WITH_PASSWORD" \
      --upload-file ./final.csv.gz \
      "$NEXUS_CSV_URL/final-${FINAL_TAG}.csv.gz"
+echo "CSV 'final' pushed successfully."
 
 curl -u "$USERNAME_WITH_PASSWORD" \
      --upload-file ./leaders.csv.gz \
      "$NEXUS_CSV_URL/leaders-${LEADER_TAG}.csv.gz"
+echo "CSV 'leaders' pushed successfully."
 
 curl -u "$USERNAME_WITH_PASSWORD" \
      --upload-file ./fichier_combine_updated_big_fixed.csv.gz \
      "$NEXUS_CSV_URL/fichier_combine_updated_big_fixed-${FICHIER_COMBINE_TAG}.csv.gz"
+echo "CSV 'fichier_combine_updated_big_fixed' pushed successfully."
+
 echo "CSV files pushed successfully."

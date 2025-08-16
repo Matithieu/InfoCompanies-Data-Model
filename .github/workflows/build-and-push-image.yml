@@ -35,24 +35,10 @@ jobs:
         run: |
           echo "Error: 'environment' must be 'dev' or 'prod'."
           exit 1
-      
+
       - if: ${{ inputs.environment == 'dev' }}
-        name: Login to Nexus native port for pulling CSVs
-        run: |
-          # Create temporary .env file for the script
-          cat > .env << EOF
-          NEXUS_URL=${NEXUS_URL}
-          NEXUS_DOCKER_URL=${NEXUS_DOCKER_URL}
-          NEXUS_USERNAME=${NEXUS_USERNAME}
-          NEXUS_PASSWORD=${NEXUS_PASSWORD}
-          EOF
-
-          echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_URL}" -u "${NEXUS_USERNAME}" --password-stdin
-          ./scripts/nexus/pull-csv.sh
-          docker logout "${NEXUS_URL}"
-
-          # Clean up .env file
-          rm -f .env
+        name: Pull CSV files from Nexus
+        run: ./scripts/nexus/pull-csv.sh
 
       - name: Build prefilled Postgres image
         run: |
@@ -70,7 +56,6 @@ jobs:
           echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_DOCKER_URL}" -u "${NEXUS_USERNAME}" --password-stdin
           docker push $IMAGE
           docker logout "${NEXUS_DOCKER_URL}"
-
 
       - name: Clean up Docker resources
         run: |
