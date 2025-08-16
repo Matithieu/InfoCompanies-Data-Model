@@ -62,7 +62,7 @@ jobs:
             DOCKERFILE="prod.Dockerfile"
           fi
 
-          IMAGE="${NEXUS_URL}/${DOCKER_DATA_MODEL_NAME}-${{ inputs.environment }}:${DOCKER_TAG}"
+          IMAGE="${NEXUS_DOCKER_URL}/${DOCKER_DATA_MODEL_NAME}-${{ inputs.environment }}:${DOCKER_TAG}"
           docker build -f "${DOCKERFILE}" -t $IMAGE .
 
           echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_DOCKER_URL}" -u "${NEXUS_USERNAME}" --password-stdin
