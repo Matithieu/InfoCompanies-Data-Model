@@ -237,20 +237,20 @@ def upgrade() -> None:
     op.create_index("idx_leader_siren", "leaders", ["siren"], unique=False)
     op.create_table(
         "config",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("last_reset_quota_date", sa.Date(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "city",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_city_name", "city", ["name"], unique=False)
     op.create_table(
         "industry_sector",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -259,14 +259,14 @@ def upgrade() -> None:
     )
     op.create_table(
         "legal_form",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_legal_form_name", "legal_form", ["name"], unique=False)
     op.create_table(
         "region",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -287,12 +287,12 @@ def upgrade() -> None:
     op.create_index("ix_user_quota_user_id", "user_quota", ["user_id"], unique=False)
     op.create_table(
         "user_company_status",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.String(), nullable=True),
         sa.Column(
             "status", sa.Enum("NOT_DONE", "TO_DO", "DONE", name="status"), nullable=True
         ),
-        sa.Column("company_id", sa.BigInteger(), nullable=True),
+        sa.Column("company_id", sa.Integer(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

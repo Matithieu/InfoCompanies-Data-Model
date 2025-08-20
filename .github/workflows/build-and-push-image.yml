@@ -36,6 +36,13 @@ jobs:
           echo "Error: 'environment' must be 'dev' or 'prod'."
           exit 1
 
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          df -h
+
       - if: ${{ inputs.environment == 'dev' }}
         name: Pull CSV files from Nexus
         run: |

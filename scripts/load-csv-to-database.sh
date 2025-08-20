@@ -32,7 +32,7 @@ transfer_csv_to_database() {
     cp "$csv_file_path" "$container_csv_file"
     psql -d postgres -c "COPY $table_name($columns) FROM '$container_csv_file' DELIMITER '$delimiter' CSV HEADER;"
     
-    log_success "Transfer of '$csv_file_path' to the database table '$table_name' completed successfully."
+    log_success "Transfer of '$container_csv_file' to the database table '$table_name' completed successfully."
 }
 
 
