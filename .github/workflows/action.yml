@@ -16,6 +16,9 @@ on:
         required: false
         default: ''
 
+permissions:
+  contents: write
+
 jobs:
   dev_build:
     if: ${{ github.event_name == 'push' }}

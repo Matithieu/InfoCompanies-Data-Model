@@ -20,9 +20,6 @@ on:
       NEXUS_PASSWORD:
         required: true
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
