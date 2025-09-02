@@ -11,13 +11,14 @@ on:
 
 jobs:
   dev_build:
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev
     secrets: inherit
 
   prod_build:
-    if: github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: prod
