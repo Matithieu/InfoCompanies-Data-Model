@@ -7,10 +7,16 @@ on:
   pull_request:
     branches:
       - develop
-  workflow_dispatch: # prod trigger (manual)
+  workflow_dispatch:
+    inputs:
+      MANUAL_TAG:
+        description: 'Optional manual tag to override versioning'
+        required: false
+        default: ''
 
 jobs:
   dev_build:
+    if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev

@@ -1,17 +1,15 @@
 name: Build and Push ImageS
 
 on:
-  workflow_dispatch:
-    inputs:
-      MANUAL_TAG:
-        description: 'Optional manual tag to override versioning'
-        required: false
-        default: ''
   workflow_call:
     inputs:
       environment:
         required: true
         type: string
+      manual_tag:
+        required: false
+        type: string
+        default: ''
     secrets:
       NEXUS_URL:
         required: true
@@ -77,8 +75,8 @@ jobs:
 
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-          if [[ "${{ github.event.inputs.MANUAL_TAG }}" != "" ]]; then
-            NEW_VERSION="${{ github.event.inputs.MANUAL_TAG}}"
+          if [[ "${{ inputs.manual_tag }}" != "" ]]; then
+            NEW_VERSION="${{ inputs.manual_tag}}"
           fi
           echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
 
