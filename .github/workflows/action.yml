@@ -5,25 +5,30 @@ on:
     branches:
       - develop # dev trigger (automatic)
   pull_request:
+    types:
+      - closed
     branches:
       - develop
   workflow_dispatch:
     inputs:
-      MANUAL_TAG:
+      manual_tag:
         description: 'Optional manual tag to override versioning'
         required: false
         default: ''
 
 jobs:
   dev_build:
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev
+      manual_tag: ${{ inputs.manual_tag }}
     secrets: inherit
 
   prod_build:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: prod
+      manual_tag: ${{ inputs.manual_tag }}
     secrets: inherit
