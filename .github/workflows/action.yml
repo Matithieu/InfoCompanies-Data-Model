@@ -5,8 +5,6 @@ on:
     branches:
       - develop # dev trigger (automatic)
   pull_request:
-    types:
-      - closed
     branches:
       - develop
   workflow_dispatch:
@@ -21,6 +19,7 @@ permissions:
 
 jobs:
   dev_build:
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev
