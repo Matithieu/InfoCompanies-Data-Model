@@ -11,7 +11,6 @@ on:
 
 jobs:
   dev_build:
-    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: dev
