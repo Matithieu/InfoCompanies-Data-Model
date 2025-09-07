@@ -31,5 +31,5 @@ jobs:
     uses: ./.github/workflows/build-and-push-image.yml
     with:
       environment: prod
-      manual_tag: ${{ inputs.manual_tag }}
+      manual_tag: ${{ github.event.inputs.manual_tag }}
     secrets: inherit
