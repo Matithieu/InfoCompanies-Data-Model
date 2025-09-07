@@ -6,6 +6,8 @@ set -euo pipefail
 source ./scripts/util.sh
 
 log_info "Initializing the database."
+
 cd ./schema
 alembic upgrade head
+
 log_info "Database initialized."
