@@ -340,7 +340,7 @@ def main():
                     chunk = chunk[~chunk["siren_number"].isin(processed_companies)]
 
                     if not chunk.empty:
-                        # Split the chunk into sub-chunkzs for parallel processing
+                        # Split the chunk into sub-chunks for parallel processing
                         # num_procs = max(1, multiprocessing.cpu_count() - 1)  # Reserve one core
                         num_processes = 1  # Debugging with 1 process
                         sub_chunks = np.array_split(chunk, num_processes)
