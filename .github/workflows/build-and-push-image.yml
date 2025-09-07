@@ -1,0 +1,128 @@
+name: Build and Push ImageS
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      manual_tag:
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NEXUS_URL:
+        required: true
+      NEXUS_DOCKER_URL:
+        required: true
+      NEXUS_USERNAME:
+        required: true
+      NEXUS_PASSWORD:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_DOCKER_URL: ${{ secrets.NEXUS_DOCKER_URL }}
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+      DOCKER_DATA_MODEL_NAME: infocompanies-data-model-postgres
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - if: ${{ inputs.environment != 'prod' && inputs.environment != 'dev' }}
+        name: Validate environment input
+        run: |
+          echo "Error: 'environment' must be 'dev' or 'prod'."
+          exit 1
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          df -h
+
+      - name: Get the last Git tag
+        id: get_last_tag
+        run: |
+          git fetch --tags --force
+          LAST_TAG=$(git tag --sort=-creatordate | head -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="0.0.0"
+          fi
+          echo "LAST_TAG=${LAST_TAG}" >> $GITHUB_ENV
+
+      - name: Calculate new version
+        id: calculate_version
+        run: |
+          LAST_TAG="${LAST_TAG}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_TAG"
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            PATCH=$((PATCH + 1))
+          else
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+          if [[ "${{ inputs.manual_tag }}" != "" ]]; then
+            NEW_VERSION="${{ inputs.manual_tag }}"
+          fi
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+
+      - if: ${{ inputs.environment == 'dev' }}
+        name: Pull CSV files from Nexus
+        run: |
+          # Create temporary .env file for the script
+          cat > .env << EOF
+          NEXUS_URL=${NEXUS_URL}
+          NEXUS_DOCKER_URL=${NEXUS_DOCKER_URL}
+          NEXUS_USERNAME=${NEXUS_USERNAME}
+          NEXUS_PASSWORD=${NEXUS_PASSWORD}
+          EOF
+
+          ./scripts/nexus/pull-csv.sh
+
+          # Clean up .env file
+          rm -f .env
+
+      - name: Build prefilled Postgres image
+        run: |
+          if [ "${{ inputs.environment }}" == "dev" ]; then
+          DOCKERFILE="dev.Dockerfile"
+          else
+          DOCKERFILE="prod.Dockerfile"
+          fi
+
+          IMAGE="${NEXUS_DOCKER_URL}/${DOCKER_DATA_MODEL_NAME}-${{ inputs.environment }}:${NEW_VERSION}"
+          docker build -f "${DOCKERFILE}" -t $IMAGE .
+
+          echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_DOCKER_URL}" -u "${NEXUS_USERNAME}" --password-stdin
+          docker push $IMAGE
+          docker logout "${NEXUS_DOCKER_URL}"
+
+      - name: Clean up Docker resources
+        run: |
+          docker rm -f "${DOCKER_DATA_MODEL_NAME}" || true
+          docker volume rm pgdata || true
+          docker system prune -f
+
+      - name: Create and push Git tag
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "${NEW_VERSION}" -m "Release ${NEW_VERSION}"
+          git push origin "${NEW_VERSION}" --no-verify
+
+      - name: Output new version
+        run: echo "New version is ${NEW_VERSION}"
