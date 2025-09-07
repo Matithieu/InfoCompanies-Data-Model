@@ -1,25 +1,22 @@
-FROM postgres:16.4
+FROM python:3.11-slim AS migrations
 
-# Install Python & dependencies for Alembic
+# Install Postgres client (optional: for raw SQL commands or debugging)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-venv python3-pip postgresql-client \
-    && python3 -m venv /opt/venv \
     && rm -rf /var/lib/apt/lists/*
 
+# Create virtualenv
+RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy requirements and install as root (postgres user cannot write to venv yet)
+# Install dependencies
 COPY requirements/build.in /tmp/requirements.in
 RUN pip install --no-cache-dir -r /tmp/requirements.in
 
-# Copy app code
+# Copy app/migrations code
 WORKDIR /app
 COPY schema ./schema
 COPY scripts ./scripts
 
-# Make migration script executable
-COPY ./scripts/docker/run-migrations.sh /docker-entrypoint-initdb.d/01_run_migrations.sh
-RUN chmod +x /docker-entrypoint-initdb.d/01_run_migrations.sh
-
-# Switch to postgres user (final step)
-USER postgres
+# Default command runs alembic inside schema folder
+WORKDIR /app/schema
+ENTRYPOINT ["alembic", "upgrade", "head"]
