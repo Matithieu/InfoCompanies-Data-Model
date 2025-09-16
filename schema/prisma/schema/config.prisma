@@ -1,0 +1,7 @@
+model Config {
+  id                    Int       @id @default(autoincrement())
+  last_reset_quota_date DateTime? @db.Date
+  
+  @@map("config")
+}
+

@@ -1,0 +1,22 @@
+model Leader {
+  id             Int     @id @default(autoincrement())
+  siren          String?
+  role           String?
+  last_name      String?
+  first_name     String?
+  gestion_number String?
+  type           String?
+  event_name     String?
+  usage_name     String?
+  pseudo         String?
+  company_name   String? @db.VarChar(3000)
+  legal_form     String?
+  id_data        String?
+  
+  @@map("leaders")
+  @@index([siren], map: "idx_leader_siren")
+  @@index([company_name], map: "idx_leader_company_name")
+  @@index([first_name], map: "idx_leader_first_name")
+  @@index([last_name], map: "idx_leader_last_name")
+  @@index([role], map: "idx_leader_role")
+}

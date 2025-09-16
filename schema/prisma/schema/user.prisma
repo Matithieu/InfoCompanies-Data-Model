@@ -1,0 +1,31 @@
+enum Status {
+  NOT_DONE
+  TO_DO
+  DONE
+}
+
+model UserCompanyStatus {
+  id         Int      @id @default(autoincrement())
+  user_id    String?
+  status     Status?
+  company_id Int?
+  
+  // Relations
+  company    Company? @relation(fields: [company_id], references: [id])
+  
+  @@map("user_company_status")
+  @@index([user_id], map: "ix_user_company_status_user_id")
+  @@index([company_id], map: "ix_user_company_status_company_id")
+}
+
+model UserQuota {
+  user_id        String @id
+  quota_allocated Int?
+  quota_used     Int?
+  
+  @@map("user_quota")
+  @@index([user_id], map: "ix_user_quota_user_id")
+  @@index([quota_allocated], map: "ix_user_quota_quota_allocated")
+  @@index([quota_used], map: "ix_user_quota_quota_used")
+}
+

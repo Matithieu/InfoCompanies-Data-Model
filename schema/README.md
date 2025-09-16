@@ -1,83 +1,148 @@
+# 📦 Database Schema Management with Prisma
 
-
-# 📦 Database Migrations with Alembic
-
-This project uses **Alembic** for managing SQLAlchemy schema migrations.
-
----
-
-## 📁 Directory structure
-
-```
-InfoCompanies-Data-Model/
-├── app/
-│   ├── models/
-│   │   └── company.py          # Your model(s)
-├── schema/
-│   └── alembic/                # Alembic config and migrations
-│       └── env.py              # Configure metadata here
-│       └── database.py         # Init the database
-```
+This project uses **Prisma** for database schema management, type-safe database access, and migrations.
 
 ---
 
 ## 🛠️ Setup
 
-1. **Install dependencies**:
+1. **Install Prisma CLI**:
 
 ```bash
-pip install alembic psycopg2-binary
+npm install -g prisma
+# or using your preferred package manager
 ```
 
-2. **Initialize Alembic** (only needed once):
+2. **Install dependencies**:
 
 ```bash
 cd schema
-alembic upgrade head
-PYTHONPATH=. python3 app/database/database.py
+pnpm install
 ```
 
-3. **Edit `alembic/env.py`** to link Alembic to your models:
+3. **Set up environment variables**:
+   Make sure your `DATABASE_URL` is properly configured in your environment:
 
-```python
-# At the top of env.py
-import sys
-import os
+```bash
+export DATABASE_URL="postgresql://username:password@localhost:5432/your_database"
+```
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from app.db.database import Base
-from app.models import company  # force model import
+4. **Generate Prisma Client**:
 
-# Then set:
-target_metadata = Base.metadata
+```bash
+cd schema
+prisma generate
 ```
 
 ---
 
 ## 🚀 Common Commands
 
-### Create a new migration (auto-generate)
+### Generate Prisma Client (after schema changes)
 
 ```bash
 cd schema
-alembic revision --autogenerate -m "add company model"
+prisma generate
 ```
 
-### Apply migrations (upgrade database)
+### Create and apply migrations
 
 ```bash
-alembic upgrade head
+cd schema
+# Create a new migration
+prisma migrate dev --name "description_of_changes"
+
+# Apply migrations to production
+prisma migrate deploy
 ```
 
-### Downgrade (undo last migration)
+### Database introspection (sync schema with existing DB)
 
 ```bash
-alembic downgrade -1
+cd schema
+prisma db pull
+```
+
+### Push schema changes without migrations (for development)
+
+```bash
+cd schema
+prisma db push
+```
+
+### Reset database (careful in production!)
+
+```bash
+cd schema
+prisma migrate reset
+```
+
+### Open Prisma Studio (database GUI)
+
+```bash
+cd schema
+prisma studio
 ```
 
 ---
 
-## 🧠 Tips
+## 📊 Database Models
 
-- Always **import all models** before running `alembic revision --autogenerate`, or Alembic won’t detect them.
-- Make sure the correct `DATABASE_URL` is set in your `database.py`.
+This schema includes the following models:
+
+### Core Business Models
+- **Company** - Comprehensive company data with financial information (2018-2023)
+- **Leader** - Company leadership and management information
+
+### Reference Data Models
+- **City** - City reference data for autocomplete
+- **IndustrySector** - Industry sector classifications
+- **LegalForm** - Legal form types
+- **Region** - Geographic regions
+
+### User Management Models
+- **UserCompanyStatus** - User interaction tracking with companies
+- **UserQuota** - User quota management system
+
+### Configuration Models
+- **Config** - System configuration settings
+
+---
+
+## 🧠 Migration from Alembic
+
+This project has been migrated from SQLAlchemy + Alembic to Prisma. Key benefits:
+
+- **Type Safety**: Auto-generated, fully typed database client
+- **Better DX**: Intuitive query API and excellent IntelliSense
+- **Database GUI**: Built-in Prisma Studio for data exploration
+- **Migration Management**: Robust migration system with rollback support
+- **Multi-language Support**: Works with JavaScript, TypeScript, Python, and more
+- **I don't like Python**: I understand Python but I don't like it and I prefer TypeScript
+
+### Key Changes:
+- All SQLAlchemy models converted to Prisma schema
+- Preserved all existing indexes and constraints
+- Maintained database compatibility (same table names and structure)
+- Enhanced with proper relations between models
+
+---
+
+## 🧭 Tips
+
+- **Always run `prisma generate`** after modifying the schema file
+- **Use `prisma migrate dev`** during development for schema changes
+- **Use `prisma migrate deploy`** for production deployments
+- **Backup your database** before running `prisma migrate reset`
+- **Check the generated client** in `./generated/prisma` for available methods
+- **Use Prisma Studio** (`prisma studio`) for easy data visualization and editing
+- **Make sure the correct `DATABASE_URL` is set** in your environment variables
+
+---
+
+## 📚 Useful Resources
+
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Prisma Schema Reference](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference)
+- [Prisma Client API Reference](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference)
+- [Migration Guide](https://www.prisma.io/docs/guides/migrate-to-prisma)
