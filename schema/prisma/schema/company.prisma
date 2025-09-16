@@ -1,0 +1,133 @@
+model Company {
+  id                     Int       @id @default(autoincrement())
+  company_name           String?
+  siren_number           String?
+  nic_number             String?
+  legal_form             String?
+  ape_code               String?
+  ape_label              String?
+  address                String?
+  postal_code            String?
+  department_number      String?
+  department             String?
+  city                   String?
+  region                 String?
+  trade_name             String?
+  registration_date      DateTime? @db.Date
+  deregistration_date    DateTime? @db.Date
+  
+  // 2018 financial data
+  closing_date_2018_1    DateTime? @db.Date
+  revenue_2018_1         Float?
+  turnover_2018_1        Float?
+  closing_date_2018_2    DateTime? @db.Date
+  revenue_2018_2         Float?
+  turnover_2018_2        Float?
+  closing_date_2018_3    DateTime? @db.Date
+  revenue_2018_3         Float?
+  turnover_2018_3        Float?
+  
+  // 2019 financial data
+  closing_date_2019_1    DateTime? @db.Date
+  revenue_2019_1         Float?
+  turnover_2019_1        Float?
+  closing_date_2019_2    DateTime? @db.Date
+  revenue_2019_2         Float?
+  turnover_2019_2        Float?
+  closing_date_2019_3    DateTime? @db.Date
+  revenue_2019_3         Float?
+  turnover_2019_3        Float?
+  
+  // 2020 financial data
+  closing_date_2020_1    DateTime? @db.Date
+  revenue_2020_1         Float?
+  turnover_2020_1        Float?
+  closing_date_2020_2    DateTime? @db.Date
+  revenue_2020_2         Float?
+  turnover_2020_2        Float?
+  closing_date_2020_3    DateTime? @db.Date
+  revenue_2020_3         Float?
+  turnover_2020_3        Float?
+  
+  // 2021 financial data
+  closing_date_2021_1    DateTime? @db.Date
+  revenue_2021_1         Float?
+  turnover_2021_1        Float?
+  closing_date_2021_2    DateTime? @db.Date
+  revenue_2021_2         Float?
+  turnover_2021_2        Float?
+  closing_date_2021_3    DateTime? @db.Date
+  revenue_2021_3         Float?
+  turnover_2021_3        Float?
+  
+  // 2022 financial data
+  closing_date_2022_1    DateTime? @db.Date
+  revenue_2022_1         Float?
+  turnover_2022_1        Float?
+  closing_date_2022_2    DateTime? @db.Date
+  revenue_2022_2         Float?
+  turnover_2022_2        Float?
+  closing_date_2022_3    DateTime? @db.Date
+  revenue_2022_3         Float?
+  turnover_2022_3        Float?
+  
+  // 2023 financial data
+  closing_date_2023_1    DateTime? @db.Date
+  revenue_2023_1         Float?
+  turnover_2023_1        Float?
+  closing_date_2023_2    DateTime? @db.Date
+  revenue_2023_2         Float?
+  turnover_2023_2        Float?
+  closing_date_2023_3    DateTime? @db.Date
+  revenue_2023_3         Float?
+  turnover_2023_3        Float?
+  
+  industry_sector        String?
+  phone_number           String?
+  website                String?   @db.VarChar(3000)
+  reviews                Json?
+  schedule               Json?
+  instagram              String?   @db.VarChar(10000)
+  facebook               String?   @db.VarChar(3000)
+  twitter                String?   @db.VarChar(3000)
+  linkedin               String?   @db.VarChar(3000)
+  youtube                String?   @db.VarChar(3000)
+  email                  String?   @db.VarChar(3000)
+  scraping_date          DateTime? @db.Date
+  date_creation          DateTime? @db.Date
+  last_processing_date   DateTime? @db.Date
+  number_of_employee     Int?
+  company_category       String?
+  
+  // Relations
+  user_company_statuses  UserCompanyStatus[]
+  
+  @@map("companies")
+  @@index([siren_number], map: "ix_companies_siren_number")
+  @@index([company_name], map: "ix_companies_company_name")
+  @@index([legal_form], map: "ix_companies_legal_form")
+  @@index([industry_sector], map: "ix_companies_industry_sector")
+  @@index([region], map: "ix_companies_region")
+  @@index([city], map: "ix_companies_city")
+  @@index([phone_number], map: "ix_companies_phone_number")
+  @@index([website], map: "ix_companies_website")
+  @@index([email], map: "ix_companies_email")
+  @@index([number_of_employee], map: "ix_companies_number_of_employee")
+  @@index([linkedin], map: "ix_companies_linkedin")
+  @@index([twitter], map: "ix_companies_twitter")
+  @@index([facebook], map: "ix_companies_facebook")
+  @@index([instagram], map: "ix_companies_instagram")
+  @@index([youtube], map: "ix_companies_youtube")
+  @@index([region, city, industry_sector, legal_form], map: "ix_companies_region_city_industry_sector_legal_form")
+  @@index([region, city, industry_sector], map: "ix_companies_region_city_industry_sector")
+  @@index([region, city, legal_form], map: "ix_companies_region_city_legal_form")
+  @@index([region, city], map: "ix_companies_region_city")
+  @@index([region, industry_sector], map: "ix_companies_region_industry_sector")
+  @@index([region, legal_form], map: "ix_companies_region_legal_form")
+  @@index([city, industry_sector, legal_form], map: "ix_companies_city_industry_sector_legal_form")
+  @@index([city, industry_sector], map: "ix_companies_city_industry_sector")
+  @@index([city, legal_form], map: "ix_companies_city_legal_form")
+  @@index([region, industry_sector, legal_form], map: "ix_companies_region_industry_sector_legal_form")
+  @@index([industry_sector, legal_form], map: "ix_companies_industry_sector_legal_form")
+  @@index([industry_sector, number_of_employee], map: "ix_companies_industry_sector_number_of_employee")
+}

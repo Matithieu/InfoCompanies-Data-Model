@@ -8,17 +8,14 @@ docker-entrypoint.sh postgres &
 echo "Waiting for Postgres..."
 sleep 5
 
-export PGHOST=localhost
-export PGUSER=postgres
-export PGPASSWORD=root
+export DATABASE_URL="postgresql://postgres:root@localhost:5432/postgres"
 
 # Test connection
 psql -d postgres -c "SELECT 1;"
 
 # Run migrations
 cd /app/schema
-alembic upgrade head
-PYTHONPATH=. python ./app/database/database.py
+pnpm exec prisma db push
 cd /app
 
 psql -v ON_ERROR_STOP=1 --username="$POSTGRES_USER" <<EOSQL

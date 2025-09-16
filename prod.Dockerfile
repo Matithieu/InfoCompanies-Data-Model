@@ -1,22 +1,20 @@
-FROM python:3.11-slim AS migrations
+FROM node:22-slim AS migrations
 
-# Install Postgres client (optional: for raw SQL commands or debugging)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-# Create virtualenv
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# Enable pnpm via corepack
+
+# Copy only package files first
+COPY schema/package.json schema/pnpm-lock.yaml ./
 
 # Install dependencies
-COPY requirements/build.in /tmp/requirements.in
-RUN pip install --no-cache-dir -r /tmp/requirements.in
+RUN npm install -g --no-fund pnpm@10.10.0 \
+    pnpm install --frozen-lockfile
 
-# Copy app/migrations code
-WORKDIR /app
-COPY schema ./schema
-COPY scripts ./scripts
+# Now copy the rest of the schema code
+COPY schema .
 
-# Default command runs alembic inside schema folder
-WORKDIR /app/schema
-ENTRYPOINT ["alembic", "upgrade", "head"]
+# Prisma checks
+RUN pnpm exec prisma generate
+
+ENTRYPOINT ["pnpm", "exec", "prisma", "db", "push"]

@@ -4,12 +4,12 @@
 *.dump
 *.gz
 *.log
-*.sql
 *.tar
 *.zip
 
 # Exceptions
 !template.csv.zip
+!schema/prisma/schema/migrations/*.sql
 
 # Directories and system files
 .DS_Store
@@ -17,5 +17,8 @@
 .idea
 .venv
 venv
+node_modules
  
- 
+schema/prisma/generated
+schema/prisma/node_modules
+schema/prisma/.env
