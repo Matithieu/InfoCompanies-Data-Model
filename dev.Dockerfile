@@ -30,8 +30,10 @@ COPY scripts/setup-db.sh /app/setup-db.sh
 COPY final.csv leaders.csv fichier_combine_updated_big_fixed.csv ./
 
 # Install dependencies
-RUN npm install -g --no-fund pnpm@10.10.0 \
-    pnpm install --frozen-lockfile
+RUN npm install -g --no-fund pnpm@10.10.0
+WORKDIR /app/schema
+RUN pnpm install --frozen-lockfile
+WORKDIR /app
 
 # Make ./data writable by postgres user
 RUN mkdir -p /app/data && chown -R postgres:postgres /app/data
