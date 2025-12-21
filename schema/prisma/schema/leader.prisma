@@ -12,11 +12,11 @@ model Leader {
   company_name   String? @db.VarChar(3000)
   legal_form     String?
   id_data        String?
-  
-  @@map("leaders")
+
   @@index([siren], map: "idx_leader_siren")
   @@index([company_name], map: "idx_leader_company_name")
   @@index([first_name], map: "idx_leader_first_name")
   @@index([last_name], map: "idx_leader_last_name")
   @@index([role], map: "idx_leader_role")
+  @@map("leaders")
 }

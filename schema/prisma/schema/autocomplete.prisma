@@ -1,31 +1,31 @@
 model City {
   id   Int     @id @default(autoincrement())
   name String?
-  
-  @@map("city")
+
   @@index([name], map: "ix_city_name")
+  @@map("city")
 }
 
 model IndustrySector {
   id   Int     @id @default(autoincrement())
   name String?
-  
-  @@map("industry_sector")
+
   @@index([name], map: "ix_industry_sector_name")
+  @@map("industry_sector")
 }
 
 model LegalForm {
   id   Int     @id @default(autoincrement())
   name String?
-  
-  @@map("legal_form")
+
   @@index([name], map: "ix_legal_form_name")
+  @@map("legal_form")
 }
 
 model Region {
   id   Int     @id @default(autoincrement())
   name String?
-  
-  @@map("region")
+
   @@index([name], map: "ix_region_name")
+  @@map("region")
 }
