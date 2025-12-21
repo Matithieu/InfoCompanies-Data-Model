@@ -9,6 +9,7 @@ COPY schema ./schema
 RUN npm install -g --no-fund pnpm@10.10.0
 
 WORKDIR /app/schema
+COPY schema/template.env ./.env
 RUN pnpm install --frozen-lockfile \
  && pnpm exec prisma generate
 
