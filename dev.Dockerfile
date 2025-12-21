@@ -10,11 +10,13 @@ ENV PGDATA=/var/lib/postgresql/data
 
 # Install Node.js and Python
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+    curl postgresql-client python3 python3-pip python3-venv \
  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
- && apt-get install -y nodejs npm postgresql-client python3 python3-pip python3-venv \
+ && apt-get install -y --no-install-recommends nodejs \
+ && node -v && npm -v \
  && python3 -m venv /opt/venv \
  && rm -rf /var/lib/apt/lists/*
+
 
  ENV PATH="/opt/venv/bin:$PATH"
 
