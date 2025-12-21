@@ -75,7 +75,7 @@ This will:
 #### Optional: Open Prisma Studio (Database GUI)
 ```bash
 cd schema
-prisma studio
+pnpm exec prisma studio
 ```
 
 ---
@@ -137,16 +137,16 @@ prisma studio
 docker compose up -d
 
 # Generate Prisma client (after schema changes)
-cd schema && prisma generate
+cd schema && pnpm exec prisma generate
 
 # Push schema to database (development)
-cd schema && prisma db push
+cd schema && pnpm exec prisma db push
 
 # Create and apply migrations (production)
-cd schema && prisma migrate dev --name "your_migration_name"
+cd schema && pnpm exec prisma migrate dev --name "your_migration_name"
 
 # Open database GUI
-cd schema && prisma studio
+cd schema && pnpm exec prisma studio
 
 # Load data
 ./db.sh
@@ -159,4 +159,4 @@ cd schema && prisma studio
 - For troubleshooting, check logs in the output pane or use `docker logs`.
 - **Prisma Client**: Generated client is located in `schema/generated/prisma/`
 - **Environment**: Ensure `DATABASE_URL` is properly configured in your `.env` file
-- **Development**: Use `prisma db push` for quick schema changes, `prisma migrate dev` for production-ready migrations
+- **Development**: Use `pnpm exec prisma db push` for quick schema changes, `pnpm exec prisma migrate dev` for production-ready migrations

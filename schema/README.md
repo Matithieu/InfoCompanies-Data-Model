@@ -31,7 +31,7 @@ export DATABASE_URL="postgresql://username:password@localhost:5432/your_database
 
 ```bash
 cd schema
-prisma generate
+pnpm exec prisma generate
 ```
 
 ---
@@ -42,7 +42,7 @@ prisma generate
 
 ```bash
 cd schema
-prisma generate
+pnpm exec prisma generate
 ```
 
 ### Create and apply migrations
@@ -50,38 +50,38 @@ prisma generate
 ```bash
 cd schema
 # Create a new migration
-prisma migrate dev --name "description_of_changes"
+pnpm exec prisma migrate dev --name "description_of_changes"
 
 # Apply migrations to production
-prisma migrate deploy
+pnpm exec prisma migrate deploy
 ```
 
 ### Database introspection (sync schema with existing DB)
 
 ```bash
 cd schema
-prisma db pull
+pnpm exec prisma db pull
 ```
 
 ### Push schema changes without migrations (for development)
 
 ```bash
 cd schema
-prisma db push
+pnpm exec prisma db push
 ```
 
 ### Reset database (careful in production!)
 
 ```bash
 cd schema
-prisma migrate reset
+pnpm exec prisma migrate reset
 ```
 
 ### Open Prisma Studio (database GUI)
 
 ```bash
 cd schema
-prisma studio
+pnpm exec prisma studio
 ```
 
 ---
@@ -105,7 +105,7 @@ This schema includes the following models:
 - **UserQuota** - User quota management system
 
 ### Configuration Models
-- **Config** - System configuration settings
+- **AppSettings** - System configuration settings
 
 ---
 
