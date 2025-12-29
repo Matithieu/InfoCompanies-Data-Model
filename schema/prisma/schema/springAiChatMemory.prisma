@@ -1,0 +1,13 @@
+model SpringAiChatMemory {
+  id              Int      @id @default(autoincrement())
+  conversation_id String   @db.VarChar(36)
+  content         String   @db.Text
+  type            String   @db.VarChar(10)
+  timestamp       DateTime @db.Timestamp
+
+  // Relations
+  userConversation UserConversation? @relation("UserConversationToSpringAiChatMemory", fields: [conversation_id], references: [conversation_id])
+
+  @@index([conversation_id])
+  @@map("spring_ai_chat_memory")
+}

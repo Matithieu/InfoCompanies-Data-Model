@@ -1,4 +1,15 @@
 #!/bin/bash
+
+# What we do here is ugly. We start Postgres, run migrations and load CSV data. We "bake" an image
+# with a full database, so that when we start Postgres for real, it's already populated.
+#
+# We should decouple this logic from the Postgres image.
+# The data from the CSV is static, so we don't need to load it every time we start the DB.
+#
+# On way to do would be to do like in production: having two containers, one for Postgres
+# with baked data in it, and one to run the migrations.
+
+
 set -e
 
 # Start Postgres in background
@@ -6,7 +17,11 @@ docker-entrypoint.sh postgres &
 
 # Wait for Postgres to be ready
 echo "Waiting for Postgres..."
-sleep 5
+until pg_isready -h localhost -p 5432 -U "$POSTGRES_USER"; do
+  echo "Waiting for Postgres..."
+  sleep 1
+done
+echo "Postgres is ready!"
 
 export DATABASE_URL="postgresql://postgres:root@localhost:5432/postgres"
 
@@ -15,7 +30,8 @@ psql -d postgres -c "SELECT 1;"
 
 # Run migrations
 cd /app/schema
-pnpm exec prisma db push
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
 cd /app
 
 psql -v ON_ERROR_STOP=1 --username="$POSTGRES_USER" <<EOSQL

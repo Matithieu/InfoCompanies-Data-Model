@@ -1,0 +1,10 @@
+model UserConversation {
+  id              Int     @id @default(autoincrement())
+  conversation_id String? @unique @db.VarChar(36)
+  user_id         String?
+
+  // Relations - one conversation has many messages
+  chatMessages SpringAiChatMemory[] @relation("UserConversationToSpringAiChatMemory")
+
+  @@map("user_conversation")
+}
