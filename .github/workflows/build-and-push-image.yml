@@ -9,7 +9,7 @@ on:
       manual_tag:
         required: false
         type: string
-        default: ''
+        default: ""
     secrets:
       NEXUS_URL:
         required: true
@@ -105,7 +105,9 @@ jobs:
           docker build -f "${DOCKERFILE}" -t $IMAGE .
 
           echo "${NEXUS_PASSWORD}" | docker login "${NEXUS_DOCKER_URL}" -u "${NEXUS_USERNAME}" --password-stdin
-          docker push $IMAGE
+
+          # Write GODEBUG to disable HTTP/2 for Docker push (workaround for Traefik which proxies to Nexus (stability issues))
+          GODEBUG=http2client=0 docker push $IMAGE
           docker logout "${NEXUS_DOCKER_URL}"
 
       - name: Clean up Docker resources

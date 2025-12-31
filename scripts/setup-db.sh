@@ -8,6 +8,9 @@
 #
 # On way to do would be to do like in production: having two containers, one for Postgres
 # with baked data in it, and one to run the migrations.
+#
+# When loading the CSV, we need the tables to be created. We launch the embedded migrations, load the CSVs and build the image.
+# Then, the migration container run the migrations on top of that image. Prisma creates a table to track the migrations.
 
 
 set -e
