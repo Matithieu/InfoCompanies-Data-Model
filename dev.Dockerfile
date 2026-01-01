@@ -50,5 +50,9 @@ RUN /app/setup-db.sh
 # ===============================
 FROM postgres:16.4
 
-# Copy preloaded, vacuumed database
-COPY --from=builder /var/lib/postgresql/data /var/lib/postgresql/data
+USER root
+RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql
+
+COPY --from=builder --chown=postgres:postgres /var/lib/postgresql/data /var/lib/postgresql/data
+
+USER postgres
